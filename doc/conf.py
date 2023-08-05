@@ -189,9 +189,7 @@ notskipregex = re.compile("_[^_]+")
 
 
 def skip(app, what, name, obj, skip, options):
-    if name == "__init__" or notskipregex.match(name):
-        return False
-    return skip
+    return False if name == "__init__" or notskipregex.match(name) else skip
 
 
 def setup(app):

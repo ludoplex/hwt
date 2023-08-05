@@ -25,8 +25,7 @@ class RtlSyncSignal(RtlMemoryBase, RtlSignal):
         super().__init__(ctx, name, var_type, def_val)
         if nop_val is NOT_SPECIFIED:
             nop_val = self
-        self.next = RtlSignal(ctx, name + "_next", var_type,
-                              nop_val=nop_val)
+        self.next = RtlSignal(ctx, f"{name}_next", var_type, nop_val=nop_val)
 
     def _getDestinationSignalForAssignmentToThis(self):
         """

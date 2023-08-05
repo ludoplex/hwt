@@ -19,11 +19,9 @@ class TestMatrix():
         self.test_arg_values = list(product(*args, *self.kwargs_values))
 
     def split_args_kwargs(self, args):
-        kwargs_cnt = len(self.kwargs_keys)
-        if kwargs_cnt:
+        if kwargs_cnt := len(self.kwargs_keys):
             _args = args[:kwargs_cnt]
-            kwargs = {k: v for k, v in zip(
-                self.kwargs_keys, args[:kwargs_cnt])}
+            kwargs = dict(zip(self.kwargs_keys, args[:kwargs_cnt]))
             return _args, kwargs
         else:
             return args, {}
@@ -48,7 +46,6 @@ class TestMatrix():
                     for k in test_matrix.kwargs_keys:
                         msg_buff.append("%s=%r" % (k, kwargs[k]))
 
-                    raise Exception(
-                        "Test failed %s" % (", ".join(msg_buff)), ) from e
+                    raise Exception(f'Test failed {", ".join(msg_buff)}') from e
 
         return test_wrap

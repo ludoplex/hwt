@@ -75,7 +75,7 @@ class ToHdlAst():
 
         :param obj: object to convert
         """
-        serFn = getattr(self, "as_hdl_" + obj.__class__.__name__, None)
+        serFn = getattr(self, f"as_hdl_{obj.__class__.__name__}", None)
         if serFn is not None:
             return serFn(obj)
         elif isinstance(obj, RtlSignalBase):
@@ -175,26 +175,25 @@ class ToHdlAst():
         if a.indexes is not None:
             dst_indexes = [self.as_hdl(x) for x in dst_indexes]
             correct = True
+        elif dst._dtype == a.src._dtype:
+            correct = True
         else:
-            if dst._dtype == a.src._dtype:
-                correct = True
-            else:
-                srcT = a.src._dtype
-                dstT = dst._dtype
-                correct = False
-                if (isinstance(srcT, Bits) and
-                        isinstance(dstT, Bits)):
-                    bl0 = srcT.bit_length()
-                    if bl0 == dstT.bit_length():
-                        if bl0 == 1 and srcT.force_vector != dstT.force_vector:
-                            if srcT.force_vector:
-                                src = src[0]
-                                correct = True
-                            elif dstT.force_vector:
-                                dst_indexes = [self.as_hdl_int(0), ]
-                                correct = True
-                        elif srcT.signed == dstT.signed:
+            dstT = dst._dtype
+            correct = False
+            srcT = a.src._dtype
+            if (isinstance(srcT, Bits) and
+                    isinstance(dstT, Bits)):
+                bl0 = srcT.bit_length()
+                if bl0 == dstT.bit_length():
+                    if bl0 == 1 and srcT.force_vector != dstT.force_vector:
+                        if srcT.force_vector:
+                            src = src[0]
                             correct = True
+                        elif dstT.force_vector:
+                            dst_indexes = [self.as_hdl_int(0), ]
+                            correct = True
+                    elif srcT.signed == dstT.signed:
+                        correct = True
 
         if not correct:
             raise SerializerException((
@@ -275,8 +274,7 @@ class ToHdlAst():
         intern_hdl = self.as_hdl_Value(intern)
         intern_hdl.obj = o
         outer_hdl = self.as_hdl_Value(outer)
-        pm = hdl_map_asoc(intern_hdl, outer_hdl)
-        return pm
+        return hdl_map_asoc(intern_hdl, outer_hdl)
 
     def as_hdl_HdlCompInst(self, o: HdlCompInst) -> HdlCompInst:
         new_o = copy(o)
@@ -421,25 +419,24 @@ class ToHdlAst():
 
                 if self.can_pop_process_wrap(statements, hasToBeVhdlProcess):
                     return statements[0]
-                else:
-                    p = HdlStmProcess()
-                    p.labels.append(proc.name)
+                p = HdlStmProcess()
+                p.labels.append(proc.name)
 
-                    if not statements:
-                        pass  # no body
-                    elif len(statements) == 1:
-                        # body made of just a singe statement
-                        p.body = statements[0]
-                    else:
-                        p.body = HdlStmBlock()
-                        assert isinstance(statements, list)
-                        p.body.body = statements
-                    anyIsEventDependnt = arr_any(
-                        proc._sensitivity, lambda s: isinstance(s, Operator))
-                    p.sensitivity = sorted([
-                        self.sensitivityListItem(s, anyIsEventDependnt)
-                        for s in proc._sensitivity])
-                    return p
+                if not statements:
+                    pass  # no body
+                elif len(statements) == 1:
+                    # body made of just a singe statement
+                    p.body = statements[0]
+                else:
+                    p.body = HdlStmBlock()
+                    assert isinstance(statements, list)
+                    p.body.body = statements
+                anyIsEventDependnt = arr_any(
+                    proc._sensitivity, lambda s: isinstance(s, Operator))
+                p.sensitivity = sorted([
+                    self.sensitivityListItem(s, anyIsEventDependnt)
+                    for s in proc._sensitivity])
+                return p
 
     def _static_assert_false(self, msg:str):
         raise NotImplementedError("Should be implemented in child class")
@@ -457,10 +454,7 @@ class ToHdlAst():
             if p.value is None:
                 continue
             v = p.value
-            if isinstance(v, (HValue, RtlSignal)):
-                v = self.as_hdl(v)
-            else:
-                v = deepcopy(v)
+            v = self.as_hdl(v) if isinstance(v, (HValue, RtlSignal)) else deepcopy(v)
             res.append(self._static_assert_symbol_eq(p.name, v))
 
         return res

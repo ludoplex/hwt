@@ -40,20 +40,12 @@ def name_for_process(outputs: List[RtlSignal]) -> str:
     """
     Resolve name for process
     """
-    out_names = []
-    for sig in outputs:
-        if not sig.hasGenericName:
-            out_names.append(sig.name)
-
-    if out_names:
-        return min(out_names)
-    else:
-        return ""
+    out_names = [sig.name for sig in outputs if not sig.hasGenericName]
+    return min(out_names, default="")
 
 
 @internal
-def _statements_to_HdlStmCodeBlockContainers(_statements, tryToSolveCombLoops: bool)\
-        ->Generator[HdlStmCodeBlockContainer, None, None]:
+def _statements_to_HdlStmCodeBlockContainers(_statements, tryToSolveCombLoops: bool) -> Generator[HdlStmCodeBlockContainer, None, None]:
     assert _statements
     # try to simplify statements
     proc_statements = ListOfHdlStatement()
@@ -116,10 +108,10 @@ def _statements_to_HdlStmCodeBlockContainers(_statements, tryToSolveCombLoops: b
             _stm._discover_sensitivity(seen)
             _stm._discover_enclosure()
 
-        if sensitivity_recompute:
-            sensitivity.clear()
-            for _stm in proc_statements:
-                sensitivity.extend(_stm._sensitivity)
+    if sensitivity_recompute:
+        sensitivity.clear()
+        for _stm in proc_statements:
+            sensitivity.extend(_stm._sensitivity)
 
     for o in outputs:
         assert not o.hidden, o
@@ -129,8 +121,7 @@ def _statements_to_HdlStmCodeBlockContainers(_statements, tryToSolveCombLoops: b
     for i in _inputs:
         inputs.extend(i._walk_public_drivers(seen))
 
-    intersect = outputs.intersection_set(sensitivity)
-    if intersect:
+    if intersect := outputs.intersection_set(sensitivity):
         # there is a combinational loop inside a single process which
         # can not be solved by separation of statments in process
         if not tryToSolveCombLoops:
@@ -151,9 +142,12 @@ def _statements_to_HdlStmCodeBlockContainers(_statements, tryToSolveCombLoops: b
 
         name = name_for_process(outputs)
         yield HdlStmCodeBlockContainer.from_known_io(
-            "assig_process_" + name,
-            proc_statements, sensitivity,
-            inputs, outputs)
+            f"assig_process_{name}",
+            proc_statements,
+            sensitivity,
+            inputs,
+            outputs,
+        )
 
 
 @internal

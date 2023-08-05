@@ -101,41 +101,40 @@ def bitsCmp(self, other, op, selfReduceVal, evalFn=None):
     if iamVal and otherIsVal:
         if type_compatible:
             return bitsCmp__val(self, other, evalFn)
-    else:
-        if type_compatible:
-            # try to reduce useless cmp
-            res = None
-            if otherIsVal and other._is_full_valid():
-                res = bitsCmp_detect_useless_cmp(self, other, op)
-            elif iamVal and self._is_full_valid():
-                res = bitsCmp_detect_useless_cmp(other, self, CMP_OP_REVERSE[op])
+    elif type_compatible:
+        # try to reduce useless cmp
+        res = None
+        if otherIsVal and other._is_full_valid():
+            res = bitsCmp_detect_useless_cmp(self, other, op)
+        elif iamVal and self._is_full_valid():
+            res = bitsCmp_detect_useless_cmp(other, self, CMP_OP_REVERSE[op])
 
-            if res is None:
-                pass
-            elif isinstance(res, HValue):
-                return res
-            else:
-                assert res == AllOps.EQ, res
-                op = res
+        if res is None:
+            pass
+        elif isinstance(res, HValue):
+            return res
+        else:
+            assert res == AllOps.EQ, res
+            op = res
 
-            if self is other:
-                return selfReduceVal
-            else:
-                return Operator.withRes(op, [self, other], BOOL)
-
-        elif t.signed != ot.signed:
-            if t.signed is None:
-                self = self._convSign(ot.signed)
-                return bitsCmp(self, other, op, evalFn)
-            elif ot.signed is None:
-                other = other._convSign(t.signed)
-                return bitsCmp(self, other, op, evalFn)
-        elif t.force_vector != ot.force_vector:
-            if t.force_vector:
-                self = self[0]
-            else:
-                other = other[0]
+        return (
+            selfReduceVal
+            if self is other
+            else Operator.withRes(op, [self, other], BOOL)
+        )
+    elif t.signed != ot.signed:
+        if t.signed is None:
+            self = self._convSign(ot.signed)
             return bitsCmp(self, other, op, evalFn)
+        elif ot.signed is None:
+            other = other._convSign(t.signed)
+            return bitsCmp(self, other, op, evalFn)
+    elif t.force_vector != ot.force_vector:
+        if t.force_vector:
+            self = self[0]
+        else:
+            other = other[0]
+        return bitsCmp(self, other, op, evalFn)
 
     raise TypeError(f"Values of types ({self._dtype}, {other._dtype}) are not comparable")
 
@@ -259,38 +258,34 @@ def bitsArithOp(self, other, op):
 
     if self_is_val and other_is_val:
         return bitsArithOp__val(self, other, op._evalFn)
-    else:
-        if self._dtype.signed is None:
-            self = self._unsigned()
+    if self._dtype.signed is None:
+        self = self._unsigned()
 
-        if other_is_val and other._is_full_valid() and int(other) == 0:
-            return self
+    if other_is_val and other._is_full_valid() and int(other) == 0:
+        return self
 
-        resT = self._dtype
-        if self_is_val and self._is_full_valid() and int(self) == 0:
-            return other._auto_cast(resT)
+    resT = self._dtype
+    if self_is_val and self._is_full_valid() and int(self) == 0:
+        return other._auto_cast(resT)
 
-        if isinstance(other._dtype, Bits):
-            t0 = self._dtype
+    if not isinstance(other._dtype, Bits):
+        raise TypeError("%r %r %r" % (self, op, other))
+
+    t0 = self._dtype
+    t1 = other._dtype
+    if t0.bit_length() != t1.bit_length():
+        if not t1.strict_width:
+            # resize to type of this
+            other = other._auto_cast(t1)
             t1 = other._dtype
-            if t0.bit_length() != t1.bit_length():
-                if not t1.strict_width:
-                    # resize to type of this
-                    other = other._auto_cast(t1)
-                    t1 = other._dtype
-                    pass
-                elif not t0.strict_width:
-                    # resize self to type of result
-                    self = self._auto_cast(t0)
-                    t0 = self._dtype
-                    pass
-                else:
-                    raise TypeError("%r %r %r" % (self, op, other))
-
-            if t1.signed != resT.signed:
-                other = other._convSign(t0.signed)
+        elif not t0.strict_width:
+            # resize self to type of result
+            self = self._auto_cast(t0)
+            t0 = self._dtype
         else:
             raise TypeError("%r %r %r" % (self, op, other))
 
-        o = Operator.withRes(op, [self, other], self._dtype)
-        return o._auto_cast(resT)
+    if t1.signed != resT.signed:
+        other = other._convSign(t0.signed)
+    o = Operator.withRes(op, [self, other], self._dtype)
+    return o._auto_cast(resT)

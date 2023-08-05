@@ -59,11 +59,7 @@ class VldSyncedAgent(SyncAgentBase):
 
     def driver(self):
         yield WaitCombRead()
-        if self.data and self.notReset():
-            d = self.data.popleft()
-        else:
-            d = NOP
-
+        d = self.data.popleft() if self.data and self.notReset() else NOP
         yield WaitWriteOnly()
         if d is NOP:
             self.set_data(None)

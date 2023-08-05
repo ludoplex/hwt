@@ -137,13 +137,12 @@ def reinterpret_bits_to_hstruct(val: Union[RtlSignal, HValue], hStructT: HStruct
             current = getattr(container, f.name)
             if isinstance(v, InterfaceBase):
                 transfer_signals(v, current)
-            elif isinstance(v, HObjList):
+            elif isinstance(v, HObjList) or not isinstance(
+                v, (RtlSignal, HValue)
+            ):
                 raise NotImplementedError()
-            elif isinstance(v, (RtlSignal, HValue)):
-                current._sig = v
             else:
-                raise NotImplementedError()
-
+                current._sig = v
         offset += width
 
     return container

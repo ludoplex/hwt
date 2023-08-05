@@ -98,21 +98,20 @@ class ToHdlAstVhdl2008_ops():
     def _as_Bits_vec(self, val: Union[RtlSignal, HValue]):
         val = self._as_Bits(val)
         t = val._dtype
-        if not t.force_vector and t.bit_length() == 1:
-            # std_logic -> std_logic_vector
-            std_logic_vector = Bits(1, signed=t.signed, force_vector=True)
-            isNew, o = self.tmpVars.create_var_cached(
-                "tmp_std_logic2vector_",
-                std_logic_vector,
-                postponed_init=True,
-                extra_args=(val, std_logic_vector))
-            if isNew:
-                o.drivers.append(HdlAssignmentContainer(val, o, virtual_only=True))
-                self.tmpVars.finish_var_init(o)
-            return o
-        else:
+        if t.force_vector or t.bit_length() != 1:
             # already a std_logic_vector
             return val
+        # std_logic -> std_logic_vector
+        std_logic_vector = Bits(1, signed=t.signed, force_vector=True)
+        isNew, o = self.tmpVars.create_var_cached(
+            "tmp_std_logic2vector_",
+            std_logic_vector,
+            postponed_init=True,
+            extra_args=(val, std_logic_vector))
+        if isNew:
+            o.drivers.append(HdlAssignmentContainer(val, o, virtual_only=True))
+            self.tmpVars.finish_var_init(o)
+        return o
 
     def as_hdl_operand(self, operand: Union[RtlSignal, HValue]):
         # no nested ternary in expressions like
@@ -187,11 +186,11 @@ class ToHdlAstVhdl2008_ops():
             op1 = self.as_hdl_operand(_op0)
             t0 = _op0._dtype
             t1 = _op1._dtype
-            if not (t0 == t1):
+            if t0 != t1:
                 assert isinstance(t0, Bits) and\
-                       isinstance(t1, Bits) and\
-                       t0.bit_length() == t1.bit_length() and\
-                       bool(t0.signed) == bool(t1.signed), (t0, t1)
+                           isinstance(t1, Bits) and\
+                           t0.bit_length() == t1.bit_length() and\
+                           bool(t0.signed) == bool(t1.signed), (t0, t1)
                 _, _op1 = self.tmpVars.create_var_cached("tmpTernaryAutoCast_", t0, def_val=_op1)
 
             op2 = self.as_hdl_operand(_op1)
@@ -221,9 +220,9 @@ class ToHdlAstVhdl2008_ops():
                 _op0 = self.as_hdl_operand(op0)
                 _op1 = self.as_hdl_operand(op1)
                 if o == HdlOpType.EQ and isinstance(_op0, HdlValueId) and\
-                        (isinstance(_op0.obj._dtype, Bits) and self._expandBitsOperandType(_op0.obj) == BOOL) and\
-                        isinstance(_op1, HdlValueInt) and\
-                        _op1.val:
+                            (isinstance(_op0.obj._dtype, Bits) and self._expandBitsOperandType(_op0.obj) == BOOL) and\
+                            isinstance(_op1, HdlValueInt) and\
+                            _op1.val:
                     # drop unnecessary casts
                     return _op0
                 else:

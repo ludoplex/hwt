@@ -135,8 +135,7 @@ def HdlStatement_reduce_overriden_assignments(statements: ListOfHdlStatement)\
 
 
 @internal
-def HdlStatement_merge_statements(statements: ListOfHdlStatement)\
-        ->Tuple[ListOfHdlStatement, int]:
+def HdlStatement_merge_statements(statements: ListOfHdlStatement) -> Tuple[ListOfHdlStatement, int]:
     """
     Merge statements in list to remove duplicated if-then-else trees
 
@@ -144,10 +143,7 @@ def HdlStatement_merge_statements(statements: ListOfHdlStatement)\
     :note: rank decrease is sum of ranks of reduced statements
     :attention: statement list has to me mergable
     """
-    order = {}
-    for i, stm in enumerate(statements):
-        order[stm] = i
-
+    order = {stm: i for i, stm in enumerate(statements)}
     new_statements = ListOfHdlStatement()
     rank_decrease = 0
 
@@ -190,15 +186,10 @@ def is_mergable_statement_list(stmsA: ListOfHdlStatement, stmsB: ListOfHdlStatem
     elif stmsA is None or stmsB is None:
         return False
 
-    # [todo] there is a performance error when the list has no statements with rank != 0
-    # all items needs to be checked everytime, for "rtl register if (clk)" statements
-    # this is a problem as this list can grow large (100K+ items) and needs to be compared with every
-    # not yet merged statement
-    for (a, b) in zip_longest(stmsA._iter_stms_with_branches(),
-                              stmsB._iter_stms_with_branches()):
-        if a is None or b is None or not a._is_mergable(b):
-            return False
-
-    # lists are empty
-    return True
+    return not any(
+        a is None or b is None or not a._is_mergable(b)
+        for a, b in zip_longest(
+            stmsA._iter_stms_with_branches(), stmsB._iter_stms_with_branches()
+        )
+    )
 

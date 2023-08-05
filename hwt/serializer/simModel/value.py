@@ -50,14 +50,16 @@ class ToHdlAstSimModel_value(ToHdlAst_Value):
 
     def as_hdl_SignalItem(self, si: Union[SignalItem, HdlIdDef],
                           declaration=False):
-        if not declaration and not si.hidden:
-            if si._const:
-                return hdl_getattr(self.SELF, si.name)
-            else:
-                return hdl_getattr(hdl_getattr(self.SELF_IO, si.name), "val")
-        else:
+        if declaration or si.hidden:
             return super(ToHdlAstSimModel_value, self).as_hdl_SignalItem(
                 si, declaration=declaration)
+
+        else:
+            return (
+                hdl_getattr(self.SELF, si.name)
+                if si._const
+                else hdl_getattr(hdl_getattr(self.SELF_IO, si.name), "val")
+            )
 
     def as_hdl_BitsVal(self, val: BitsVal):
         dtype = val._dtype
@@ -110,16 +112,12 @@ class ToHdlAstSimModel_value(ToHdlAst_Value):
             if ops[1] == one and ops[2] == zero:
                 # ignore redundant x ? 1 : 0
                 return self.as_hdl_cond(ops[0], True)
-            else:
-                op0 = self.as_hdl_cond(ops[0], True)
-                op1 = self.as_hdl_Value(ops[1])
-                op2 = self.as_hdl_Value(ops[2])
-                return hdl_call(hdl_getattr(op0, "_ternary"), [op1, op2])
-        elif o == AllOps.RISING_EDGE or o == AllOps.FALLING_EDGE:
-            if o == AllOps.RISING_EDGE:
-                fn = "_onRisingEdge"
-            else:
-                fn = "_onFallingEdge"
+            op0 = self.as_hdl_cond(ops[0], True)
+            op1 = self.as_hdl_Value(ops[1])
+            op2 = self.as_hdl_Value(ops[2])
+            return hdl_call(hdl_getattr(op0, "_ternary"), [op1, op2])
+        elif o in [AllOps.RISING_EDGE, AllOps.FALLING_EDGE]:
+            fn = "_onRisingEdge" if o == AllOps.RISING_EDGE else "_onFallingEdge"
             op0 = self.as_hdl_Value(ops[0])
             # pop .val
             op0 = op0.ops[0]
@@ -129,19 +127,12 @@ class ToHdlAstSimModel_value(ToHdlAst_Value):
             do_cast = bool(op0._dtype.signed) != bool(op.result._dtype.signed)
 
             op_hdl = self.as_hdl_Value(op0)
-            if do_cast:
-                if bool(op.result._dtype.signed):
-                    sign = self.TRUE
-                else:
-                    sign = self.FALSE
-                return hdl_call(hdl_getattr(op_hdl, "cast_sign"), [sign, ])
-            else:
+            if not do_cast:
                 return op_hdl
+            sign = self.TRUE if bool(op.result._dtype.signed) else self.FALSE
+            return hdl_call(hdl_getattr(op_hdl, "cast_sign"), [sign, ])
         elif o == AllOps.CONCAT:
             return hdl_call(hdl_getattr(self.as_hdl_Value(ops[0]), "_concat"),
-                            [self.as_hdl_Value(ops[1]), ])
-        elif o == AllOps.EQ:
-            return hdl_call(hdl_getattr(self.as_hdl_Value(ops[0]), "_eq"),
                             [self.as_hdl_Value(ops[1]), ])
         else:
             o = self.op_transl_dict[o]

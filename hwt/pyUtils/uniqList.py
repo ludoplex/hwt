@@ -22,10 +22,9 @@ class UniqList(Generic[T], list):
         """
         if item in self.__s:
             return False
-        else:
-            self.__s.add(item)
-            list.append(self, item)
-            return True
+        self.__s.add(item)
+        list.append(self, item)
+        return True
 
     def extend(self, items: Sequence[T]):
         for item in items:

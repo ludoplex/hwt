@@ -24,10 +24,7 @@ class ConstantCache(object):
             return self._cache[val]
         except KeyError:
             if isinstance(val.val, int):
-                if val.val < 0:
-                    name = "const_m%d_" % -val.val
-                else:
-                    name = f"const_{val.val:d}_"
+                name = "const_m%d_" % -val.val if val.val < 0 else f"const_{val.val:d}_"
             else:
                 name = "const_"
 

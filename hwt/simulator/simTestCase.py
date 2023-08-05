@@ -109,14 +109,14 @@ class SimTestCase(unittest.TestCase):
             if self.DEFAULT_LOG_DIR is None:
                 outputFileName = None
             else:
-                outputFileName = os.path.join(self.DEFAULT_LOG_DIR,
-                                              self.getTestName() + ".vcd")
+                outputFileName = os.path.join(
+                    self.DEFAULT_LOG_DIR, f"{self.getTestName()}.vcd"
+                )
         else:
             outputFileName = name
 
         if outputFileName is not None:
-            d = os.path.dirname(outputFileName)
-            if d:
+            if d := os.path.dirname(outputFileName):
                 os.makedirs(d, exist_ok=True)
 
             self.rtl_simulator.set_trace_file(outputFileName, -1)

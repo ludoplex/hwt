@@ -71,21 +71,17 @@ class RdSyncedAgent(SyncAgentBase):
         if not (en and do):
             return
 
-        if en:
-            rd = self.get_ready()
-            try:
-                rd = int(rd)
-            except ValueError:
-                raise AssertionError(
-                    ("%r: ready signal for interface %r is in invalid state,"
-                     " this would cause desynchronization") %
-                    (self.sim.now, self.intf))
-            if rd:
-                if self._debugOutput is not None:
-                    self._debugOutput.write("%s, wrote, %d: %r\n" % (
-                                               self.intf._getFullName(),
-                                               self.sim.now, self.actualData))
-                if self.data:
-                    self.actualData = self.data.popleft()
-                else:
-                    self.actualData = NOP
+        rd = self.get_ready()
+        try:
+            rd = int(rd)
+        except ValueError:
+            raise AssertionError(
+                ("%r: ready signal for interface %r is in invalid state,"
+                 " this would cause desynchronization") %
+                (self.sim.now, self.intf))
+        if rd:
+            if self._debugOutput is not None:
+                self._debugOutput.write("%s, wrote, %d: %r\n" % (
+                                           self.intf._getFullName(),
+                                           self.sim.now, self.actualData))
+            self.actualData = self.data.popleft() if self.data else NOP

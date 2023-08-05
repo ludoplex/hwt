@@ -87,9 +87,8 @@ class HArrayVal(HValue):
             kv = key.val
             if not key._is_full_valid():
                 raise KeyError()
-            else:
-                if kv >= self._dtype.size:
-                    raise KeyError()
+            if kv >= self._dtype.size:
+                raise KeyError()
 
             return self.val[kv].__copy__()
         except KeyError:
@@ -102,9 +101,7 @@ class HArrayVal(HValue):
 
         if isSLICE:
             raise NotImplementedError()
-        elif isinstance(key, (HValue, RtlSignalBase)):
-            pass
-        else:
+        elif not isinstance(key, (HValue, RtlSignalBase)):
             raise NotImplementedError(
                 f"Index operation not implemented for index {key}")
 

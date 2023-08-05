@@ -32,10 +32,7 @@ def walkInputsForSpecificOutput(output_sig: RtlSignalBase, stm: HdlStatement):
     elif isinstance(stm, SwitchContainer):
         yield stm.switchOn
 
-    elif isinstance(stm, HdlStmCodeBlockContainer):
-        pass
-
-    else:
+    elif not isinstance(stm, HdlStmCodeBlockContainer):
         raise NotImplementedError(stm)
 
     for _stm in stm._iter_stms_for_output(output_sig):
@@ -114,8 +111,7 @@ def removeUnconnectedSignals(netlist: "RtlNetlist"):
             if removed_e is not None:
                 # must not destroy before processing inputs
                 removed_e._destroy()
-        intf = getattr(sig, "_interface", None)
-        if intf:
+        if intf := getattr(sig, "_interface", None):
             if intf._sig is sig:
                 intf._sig = None
             else:

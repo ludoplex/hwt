@@ -49,9 +49,8 @@ class Param():
         if t is None:
             t = STR
             v = t.from_py(str(v))
-        else:
-            if not isinstance(v, HValue):
-                v = t.from_py(v)
+        elif not isinstance(v, HValue):
+            v = t.from_py(v)
         return v
 
     def get_value(self):

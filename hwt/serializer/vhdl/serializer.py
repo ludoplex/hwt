@@ -25,7 +25,7 @@ class VhdlNameScope(NameScope):
         suggested_name = self._sanitize_name(suggested_name)
         suggested_name = self.RE_MANY_UNDERSCORES.sub(r"_", suggested_name)
         if suggested_name[0] == "_":
-            suggested_name = "u" + suggested_name
+            suggested_name = f"u{suggested_name}"
         return NameScope.checked_name(self, suggested_name, actualObj)
 
 
@@ -107,9 +107,7 @@ class ToHdlAstVhdl2008(ToHdlAstVhdl2008_Value,
             groupedby(component_insts, lambda c: c.module_name)
         ]
         components.sort(key=lambda c: c.module_name)
-        components = [self.as_hdl_HldComponent(c)
-                      for c in components]
-        if components:
+        if components := [self.as_hdl_HldComponent(c) for c in components]:
             # :note: it is important that the asserts are at the end because
             # we are detecting the declarations from the beginnig and assert there would
             # disturb that
@@ -122,5 +120,4 @@ class ToHdlAstVhdl2008(ToHdlAstVhdl2008_Value,
         return res
 
     def as_hdl_HldComponent(self, o: HdlCompInst):
-        c = self.as_hdl_HdlModuleDec(o.origin._ctx.ent)
-        return c
+        return self.as_hdl_HdlModuleDec(o.origin._ctx.ent)

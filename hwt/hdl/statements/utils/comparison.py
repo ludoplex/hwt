@@ -11,11 +11,7 @@ def isSameStatementList(stmListA: ListOfHdlStatement,
     if stmListA is None or stmListB is None:
         return False
 
-    for a, b in zip(stmListA, stmListB):
-        if not a.isSame(b):
-            return False
-
-    return True
+    return all(a.isSame(b) for a, b in zip(stmListA, stmListB))
 
 
 def statementsAreSame(statements: ListOfHdlStatement) -> bool:

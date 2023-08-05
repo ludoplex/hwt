@@ -79,8 +79,7 @@ class HdlAssignmentContainer(HdlStatement):
         if isinstance(src, RtlSignalBase):
             self._inputs.append(src)
 
-        indexes = self.indexes
-        if indexes:
+        if indexes := self.indexes:
             for i in indexes:
                 if isinstance(i, RtlSignalBase):
                     self._inputs.append(i)
@@ -132,7 +131,6 @@ class HdlAssignmentContainer(HdlStatement):
         :see: :meth:`hwt.hdl.statements.statement.HdlStatement._iter_stms`
         """
         return
-        yield
 
     @internal
     def _iter_stms_for_output(self, output: RtlSignalBase) -> Generator[HdlStatement, None, None]:
@@ -140,7 +138,6 @@ class HdlAssignmentContainer(HdlStatement):
         :see: :meth:`hwt.hdl.statements.statement.HdlStatement._iter_stms_for_output`
         """
         return
-        yield
 
     @internal
     def _on_parent_event_dependent(self):

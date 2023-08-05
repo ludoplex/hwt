@@ -63,12 +63,7 @@ def log2ceil(x):
     if not isinstance(x, (int, float)):
         x = int(x)
 
-    if x == 0 or x == 1:
-        res = 1
-    else:
-        res = math.ceil(math.log2(x))
-
-    return res
+    return 1 if x in [0, 1] else math.ceil(math.log2(x))
 
 
 def isPow2(num) -> bool:
@@ -98,8 +93,7 @@ def shiftIntArray(values: List[Union[int, BitsVal]], item_width: int, shift: int
     t = Bits(item_width)
     if shift > 0:
         # <<
-        for _ in range(shift // item_width):
-            new_v.append(None)
+        new_v.extend(None for _ in range(shift // item_width))
         prev = None
         for v in values:
             if v is None and prev is None:
@@ -114,10 +108,7 @@ def shiftIntArray(values: List[Union[int, BitsVal]], item_width: int, shift: int
                 _v = (v << shift) | (prev >> (item_width - shift))
             new_v.append(_v)
             prev = v
-        if prev is None:
-            v = None
-        else:
-            v = prev >> (item_width - shift)
+        v = None if prev is None else prev >> (item_width - shift)
         new_v.append(v)
     else:
         # shift < 0, >>

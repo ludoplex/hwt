@@ -54,11 +54,7 @@ class StructIntf(Interface):
 
     def _declr(self):
         _t = self._dtype
-        if isinstance(_t, HStruct):
-            fields = _t.fields
-        else:
-            fields = _t.fields.values()
-
+        fields = _t.fields if isinstance(_t, HStruct) else _t.fields.values()
         self._fieldsToInterfaces[self._field_path] = self
 
         for field in fields:
@@ -143,19 +139,24 @@ class Interface_to_HdlType():
         """
         assert exclude is None or intf not in exclude
         if isinstance(intf, Interface) and intf._interfaces:
-            if exclude is None:
-                return HStruct(
-                    *((self.apply(i, const=const), i._name)
-                      for i in intf._interfaces)
+            return (
+                HStruct(
+                    *(
+                        (self.apply(i, const=const), i._name)
+                        for i in intf._interfaces
+                    )
                 )
-            else:
-                return HStruct(
-                    *((self.apply(i, const=const), i._name)
-                      for i in intf._interfaces if i not in exclude)
+                if exclude is None
+                else HStruct(
+                    *(
+                        (self.apply(i, const=const), i._name)
+                        for i in intf._interfaces
+                        if i not in exclude
+                    )
                 )
-        else:
-            t = intf._dtype
-            if t.const != const:
-                t = copy(t)
-                t.const = const
-            return t
+            )
+        t = intf._dtype
+        if t.const != const:
+            t = copy(t)
+            t.const = const
+        return t

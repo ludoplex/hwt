@@ -94,15 +94,12 @@ class IpPackager(IpCorePackager):
         t = g.type
 
         def getVal():
-            if v.vld_mask:
-                return v.val
-            else:
-                return 0
+            return v.val if v.vld_mask else 0
 
         def bitString(w):
             val.format = "bitString"
             digits = math.ceil(w / 4)
-            val.text = ('0x%0' + str(digits) + 'X') % getVal()
+            val.text = f'0x%0{str(digits)}X' % getVal()
             val.bitStringLength = str(w)
 
         if t == BOOL:

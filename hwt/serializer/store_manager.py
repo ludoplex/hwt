@@ -90,12 +90,9 @@ class SaveToFilesFlat(StoreManager):
 
     def write(self, obj: Union[iHdlObj, HdlConstraintList]):
         if isinstance(obj, HdlConstraintList):
-            f_name = "constraints" + self.serializer_cls.TO_CONSTRAINTS.fileExtension
+            f_name = f"constraints{self.serializer_cls.TO_CONSTRAINTS.fileExtension}"
         else:
-            if isinstance(obj, HdlModuleDef):
-                name = obj.module_name.val
-            else:
-                name = obj.name
+            name = obj.module_name.val if isinstance(obj, HdlModuleDef) else obj.name
             f_name = name + self.serializer_cls.fileExtension
 
         fp = os.path.join(self.root, f_name)

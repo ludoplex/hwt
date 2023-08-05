@@ -21,9 +21,8 @@ def _connect_to_const_it(val, intf: Interface, exclude: Optional[Set[Interface]]
     if intf._interfaces:
         for i in intf._interfaces:
             yield from _connect_to_const_it(val, i, exclude)
-    else:
-        if intf._direction == INTF_DIRECTION.SLAVE:
-            yield intf(val)
+    elif intf._direction == INTF_DIRECTION.SLAVE:
+        yield intf(val)
 
 
 class EmptyUnit(Unit):

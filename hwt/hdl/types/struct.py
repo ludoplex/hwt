@@ -16,9 +16,7 @@ class HStructFieldMeta():
         self.split = split
 
     def __eq__(self, other):
-        if other is None:
-            return False
-        return self.split == other.split
+        return False if other is None else self.split == other.split
 
     @internal
     def __hash__(self):
@@ -103,13 +101,13 @@ class HStruct(HdlType):
 
         usedNames = set(field_by_name.keys())
         assert not protectedNames.intersection(usedNames),\
-            protectedNames.intersection(usedNames)
+                protectedNames.intersection(usedNames)
 
         class StructVal(StructValBase):
             __slots__ = list(usedNames)
 
         if name is not None:
-            StructVal.__name__ = name + "Val"
+            StructVal.__name__ = f"{name}Val"
 
         self.valueCls = StructVal
 
@@ -135,12 +133,10 @@ class HStruct(HdlType):
     def __fields__eq__(self, other):
         if len(self.fields) != len(other.fields):
             return False
-        for sf, of in zip(self.fields, other.fields):
-            if (sf.name != of.name or
-                    sf.dtype != of.dtype or
-                    sf.meta != of.meta):
-                return False
-        return True
+        return not any(
+            (sf.name != of.name or sf.dtype != of.dtype or sf.meta != of.meta)
+            for sf, of in zip(self.fields, other.fields)
+        )
 
     def __eq__(self, other):
         if self is other:
@@ -179,11 +175,7 @@ class HStruct(HdlType):
             (used only by HStruct)
         :param expandStructs: expand HStructTypes (used by HStruct and HArray)
         """
-        if self.name:
-            name = self.name + " "
-        else:
-            name = ""
-
+        name = f"{self.name} " if self.name else ""
         myIndent = getIndent(indent)
         childIndent = getIndent(indent + 1)
         header = f"{myIndent:s}struct {name:s}{{"

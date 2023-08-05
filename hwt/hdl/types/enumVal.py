@@ -23,13 +23,12 @@ class HEnumVal(HValue):
             assert vld_mask is None or vld_mask == 0
             valid = False
             val = typeObj._allValues[0]
+        elif vld_mask is None or vld_mask == 1:
+            assert isinstance(val, str)
+            valid = True
         else:
-            if vld_mask is None or vld_mask == 1:
-                assert isinstance(val, str)
-                valid = True
-            else:
-                valid = False
-                val = None
+            valid = False
+            val = None
 
         return cls(typeObj, val, valid)
 

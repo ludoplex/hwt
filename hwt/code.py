@@ -169,35 +169,29 @@ def SwitchLogic(cases, default=None):
     hasElse = False
     for cond, statements in cases:
         if isinstance(cond, (RtlSignalBase, InterfaceBase)):
+            assigTop = (
+                If(cond, statements)
+                if assigTop is None
+                else assigTop.Elif(cond, statements)
+            )
+        elif cond:
             if assigTop is None:
-                assigTop = If(cond,
-                             statements
-                           )
+                assigTop = statements
             else:
-                assigTop = assigTop.Elif(cond, statements)
+                assigTop.Else(statements)
+                hasElse = True
         else:
-            if cond:
-                if assigTop is None:
-                    assigTop = statements
-                else:
-                    assigTop.Else(statements)
-                    hasElse = True
-            else:
-                raise HwtSyntaxError("Condition is not a signal, it is not certain"
-                                     " if this is an error or desire ", cond)
+            raise HwtSyntaxError("Condition is not a signal, it is not certain"
+                                 " if this is an error or desire ", cond)
 
     if assigTop is None:
-        if default is None:
-            return []
-        else:
-            return default
-    else:
-        if hasElse:
-            return assigTop
-        elif default is not None:
-            assigTop = assigTop.Else(default)
-
+        return [] if default is None else default
+    if hasElse:
         return assigTop
+    elif default is not None:
+        assigTop = assigTop.Else(default)
+
+    return assigTop
 
 
 def In(sigOrVal, iterable):
@@ -208,11 +202,7 @@ def In(sigOrVal, iterable):
     res = None
     for i in iterable:
         i = toHVal(i)
-        if res is None:
-            res = sigOrVal._eq(i)
-        else:
-            res = res | sigOrVal._eq(i)
-
+        res = sigOrVal._eq(i) if res is None else res | sigOrVal._eq(i)
     assert res is not None, "argument iterable is empty"
     return res
 
@@ -239,16 +229,22 @@ def StaticForEach(parentUnit, items, bodyFn, name=""):
         return bodyFn(items[0], 0)
     else:
         # if there is multiple items we have to generate counter logic
-        index = parentUnit._reg(name + "for_index",
-                                Bits(log2ceil(itemsCnt + 1), signed=False),
-                                def_val=0)
-        ackSig = parentUnit._sig(name + "for_ack")
+        index = parentUnit._reg(
+            f"{name}for_index",
+            Bits(log2ceil(itemsCnt + 1), signed=False),
+            def_val=0,
+        )
+        ackSig = parentUnit._sig(f"{name}for_ack")
 
-        statementLists = []
-        for i, (statementList, ack) in [(i, bodyFn(item, i))
-                                        for i, item in enumerate(items)]:
-            statementLists.append(statementList + [(ackSig(ack)), ])
-
+        statementLists = [
+            statementList
+            + [
+                (ackSig(ack)),
+            ]
+            for i, (statementList, ack) in [
+                (i, bodyFn(item, i)) for i, item in enumerate(items)
+            ]
+        ]
         If(ackSig,
            If(index._eq(itemsCnt - 1),
               index(0)
@@ -347,7 +343,7 @@ def ror(sig:Union[RtlSignalBase, HValue], howMany: int) -> RtlSignalBase:
     if isinstance(howMany, int):
         return sig[howMany:]._concat(sig[:howMany])
     elif isinstance(howMany, HValue):
-        return ror(sig, int(howMany))
+        return ror(sig, howMany)
     else:
         t = howMany._dtype
         if not isinstance(t, Bits) or t.signed:

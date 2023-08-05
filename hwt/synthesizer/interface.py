@@ -196,7 +196,7 @@ class Interface(InterfaceBase, InterfaceceImplDependentFns,
                 if isinstance(mIfc, HValue):
                     # HStruct values
                     if (ifc._masterDir in (DIRECTION.OUT, DIRECTION.INOUT) and ifc._direction == INTF_DIRECTION.MASTER) or\
-                        (ifc._masterDir == DIRECTION.IN and ifc._direction == INTF_DIRECTION.SLAVE):
+                            (ifc._masterDir == DIRECTION.IN and ifc._direction == INTF_DIRECTION.SLAVE):
                         raise IntfLvlConfErr(
                             "Invalid connection", ifc, "<=", mIfc)
                     yield from ifc._connectToIter(mIfc,
@@ -210,14 +210,14 @@ class Interface(InterfaceBase, InterfaceceImplDependentFns,
                     yield from ifc._connectToIter(mIfc,
                                                   exclude,
                                                   fit)
-                else:
-                    if ifc._masterDir != mIfc._masterDir:
-                        raise IntfLvlConfErr(
-                            "Invalid connection", mIfc, "<=", ifc)
-
+                elif ifc._masterDir == mIfc._masterDir:
                     yield from mIfc._connectToIter(ifc,
                                                    exclude,
                                                    fit)
+                else:
+                    raise IntfLvlConfErr(
+                        "Invalid connection", mIfc, "<=", ifc)
+
             if master is None:
                 master_intf_cnt = len(self._interfaces)
             elif isinstance(master, HValue):
@@ -226,17 +226,14 @@ class Interface(InterfaceBase, InterfaceceImplDependentFns,
                 master_intf_cnt = len(master._interfaces)
 
             if len(seen_master_intfs) != master_intf_cnt:
-                if exclude:
+                if not exclude:
+                    raise InterfaceStructureErr(self, master, exclude)
                     # there is a possibility that the master interface was excluded,
                     # but we did not see it as the interface of the same name was not present on self
-                    for ifc in self._interfaces:
-                        if ifc in exclude or ifc not in seen_master_intfs:
-                            continue
-                        else:
-                            # ifc is an interface which is extra on master and is missing an equivalent on slave
-                            raise InterfaceStructureErr(self, master, exclude)
-                else:
-                    raise InterfaceStructureErr(self, master, exclude)
+                for ifc in self._interfaces:
+                    if ifc not in exclude and ifc in seen_master_intfs:
+                        # ifc is an interface which is extra on master and is missing an equivalent on slave
+                        raise InterfaceStructureErr(self, master, exclude)
         else:
             if not isinstance(master, HValue) and master._interfaces:
                 raise InterfaceStructureErr(self, master, exclude)
@@ -345,24 +342,12 @@ class Interface(InterfaceBase, InterfaceceImplDependentFns,
             interfaces = _intf._interfaces
 
         if interfaces:
-            w = 0
-            for i in interfaces:
-                w += i._bit_length()
-            return w
+            return sum(i._bit_length() for i in interfaces)
         else:
             return self._dtype.bit_length()
 
     def __repr__(self) -> str:
-        if hasattr(self, "_dtype"):
-            t = f" {self._dtype}"
-        else:
-            t = ""
-
-
-        if hasattr(self, '_width'):
-            w = " _width=%s" % str(self._width)
-        else:
-            w = ""
-
+        t = f" {self._dtype}" if hasattr(self, "_dtype") else ""
+        w = f" _width={str(self._width)}" if hasattr(self, '_width') else ""
         name = self._getFullName()
         return f"<{self.__class__.__name__} {name:s}{w:s}{t:s}>"

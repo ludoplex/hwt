@@ -25,11 +25,7 @@ def to_rtl(unit_or_cls: Unit, store_manager: StoreManager,
         on every unit under _target_platform attribute
         before Unit._impl() is called
     """
-    if isinstance(unit_or_cls, Unit):
-        u = unit_or_cls
-    else:
-        u = unit_or_cls()
-
+    u = unit_or_cls if isinstance(unit_or_cls, Unit) else unit_or_cls()
     u._target_platform = target_platform
     u._store_manager = store_manager
     u._loadDeclarations()

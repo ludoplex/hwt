@@ -58,16 +58,12 @@ class ToHdlAstSimModel(ToHdlAstSimModel_value, ToHdlAstSimModel_types,
         assert not outer.hidden, outer
         intern_hdl = HdlValueId(intern.name, obj=intern)
         outer_hdl = HdlValueId(outer.name, obj=outer)
-        pm = hdl_map_asoc(intern_hdl, outer_hdl)
-        return pm
+        return hdl_map_asoc(intern_hdl, outer_hdl)
 
     def as_hdl_HdlAssignmentContainer(self, a: HdlAssignmentContainer):
         dst, dst_indexes, src = self._as_hdl_HdlAssignmentContainer_auto_conversions(a)
         ev = HdlValueInt(int(a._event_dependent_from_branch == 0), None, None)
-        if dst_indexes is not None:
-            src = (src, dst_indexes, ev)
-        else:
-            src = (src, ev)
+        src = (src, dst_indexes, ev) if dst_indexes is not None else (src, ev)
         hdl_dst = hdl_getattr(hdl_getattr(self.SELF_IO, dst.name), "val_next")
         hdl_a = HdlStmAssign(src, hdl_dst)
         hdl_a.is_blocking = dst.virtual_only
@@ -88,10 +84,9 @@ class ToHdlAstSimModel(ToHdlAstSimModel_value, ToHdlAstSimModel_types,
 
         if len(outputInvalidateStms) == 1:
             return outputInvalidateStms[0]
-        else:
-            b = HdlStmBlock()
-            b.body = outputInvalidateStms
-            return b
+        b = HdlStmBlock()
+        b.body = outputInvalidateStms
+        return b
 
     def as_hdl_IfContainer_cond_eval(self, cond):
         """
@@ -182,18 +177,17 @@ class ToHdlAstSimModel(ToHdlAstSimModel_value, ToHdlAstSimModel_types,
         return self.as_hdl_IfContainer(topIf)
 
     def sensitivityListItem(self, item, anyEventDependent):
-        if isinstance(item, Operator):
-            op = item.operator
-            if op == AllOps.RISING_EDGE:
-                sens = HdlOpType.RISING
-            elif op == AllOps.FALLING_EDGE:
-                sens = HdlOpType.FALLING
-            else:
-                raise TypeError("This is not an event sensitivity", op)
-
-            return HdlOp(sens, [HdlValueId(item.operands[0].name)])
-        else:
+        if not isinstance(item, Operator):
             return HdlValueId(item.name)
+        op = item.operator
+        if op == AllOps.RISING_EDGE:
+            sens = HdlOpType.RISING
+        elif op == AllOps.FALLING_EDGE:
+            sens = HdlOpType.FALLING
+        else:
+            raise TypeError("This is not an event sensitivity", op)
+
+        return HdlOp(sens, [HdlValueId(item.operands[0].name)])
 
     def has_to_be_process(self, proc):
         return True

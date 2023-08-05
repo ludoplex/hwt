@@ -45,14 +45,14 @@ class ToHdlAstVhdl2008_statements():
         dst_t = dst._dtype
         correct = False
         src_t = self._expandBitsOperandType(src)
-            
+
         if dst_t == src_t:
             correct = True
         else:
             src = a.src
             if (isinstance(dst_t, Bits) and isinstance(src_t, Bits)):
                 # std_logic <-> boolean <->  std_logic_vector(0 downto 0) auto conversions
-                while not (dst_t == src_t):
+                while dst_t != src_t:
                     # while is used because the casting could be required multiple times
                     correct = False
                     if dst_t.bit_length() == src_t.bit_length() == 1:
@@ -66,17 +66,14 @@ class ToHdlAstVhdl2008_statements():
                             src = src._ternary(BIT.from_py(1), BIT.from_py(0))
                             correct = True
                     elif not src_t.strict_width:
-                        if isinstance(src, HValue):
-                            src = copy(src)
-                            if a.indexes:
-                                raise NotImplementedError()
-
-                            src._dtype = dst_t
-                            correct = True
-                        else:
+                        if not isinstance(src, HValue):
                             raise NotImplementedError()
-                            pass
+                        src = copy(src)
+                        if a.indexes:
+                            raise NotImplementedError()
 
+                        src._dtype = dst_t
+                        correct = True
                     src_t = src._dtype
                     dst_t = dst._dtype
 
@@ -111,12 +108,10 @@ class ToHdlAstVhdl2008_statements():
     def can_pop_process_wrap(self, stms, hasToBeVhdlProcess):
         if hasToBeVhdlProcess or len(stms) > 1:
             return False
-        else:
-            assert len(stms) == 1, stms
-            return True
+        assert len(stms) == 1, stms
+        return True
 
     def has_to_be_process(self, proc: HdlStmCodeBlockContainer):
-        for x in proc.statements:
-            if isinstance(x, (IfContainer, SwitchContainer)):
-                return True
-        return False
+        return any(
+            isinstance(x, (IfContainer, SwitchContainer)) for x in proc.statements
+        )

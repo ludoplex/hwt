@@ -139,7 +139,7 @@ class HObjList(list, Generic[T]):
                     assert isinstance(n, str), (name, n)
                     name = n
             else:
-                name = n + "." + name
+                name = f"{n}.{name}"
 
             tmp = getattr(tmp, "_parent", None)
 

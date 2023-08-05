@@ -15,7 +15,7 @@ def systemCTypeOfSig(s):
         s = s.origin
 
     if isinstance(s, HdlPortItem):
-        if s.direction == DIRECTION.IN or s.direction == DIRECTION.INOUT:
+        if s.direction in [DIRECTION.IN, DIRECTION.INOUT]:
             return SIGNAL_TYPE.PORT_WIRE
 
         t = systemCTypeOfSig(s.getInternSig())

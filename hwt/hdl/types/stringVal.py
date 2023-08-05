@@ -25,10 +25,9 @@ class HStringVal(HValue):
         if not vld:
             assert vld_mask is None or vld_mask == 0
             val = ""
-        else:
-            if vld_mask == 0:
-                val = ""
-                vld = 0
+        elif vld_mask == 0:
+            val = ""
+            vld = 0
 
         return cls(typeObj, val, vld)
 
@@ -51,6 +50,5 @@ class HStringVal(HValue):
 
         if self_is_val and other_is_val:
             return self._eq__val(other)
-        else:
-            assert self._dtype == other._dtype, (self, self._dtype, other, other._dtype)
-            return Operator.withRes(AllOps.EQ, [self, other], BOOL)
+        assert self._dtype == other._dtype, (self, self._dtype, other, other._dtype)
+        return Operator.withRes(AllOps.EQ, [self, other], BOOL)

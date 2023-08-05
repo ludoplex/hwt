@@ -38,9 +38,9 @@ def markVisibilityOfSignalsAndCheckDrivers(netlist: "RtlNetlist"):
         #    sig._nop_val.hidden = False
 
         driver_cnt = len(sig.drivers)
-        has_comb_driver = False
         if driver_cnt > 1:
             sig.hidden = False
+            has_comb_driver = False
             for d in sig.drivers:
                 if not isinstance(d, Operator):
                     sig.hidden = False

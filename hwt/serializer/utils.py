@@ -14,10 +14,9 @@ def getMaxStmIdForStm(stm):
     maxId = 0
     if isinstance(stm, HdlAssignmentContainer):
         return stm._instId
-    else:
-        for _stm in stm._iter_stms():
-            maxId = max(maxId, getMaxStmIdForStm(_stm))
-        return maxId
+    for _stm in stm._iter_stms():
+        maxId = max(maxId, getMaxStmIdForStm(_stm))
+    return maxId
 
 
 def RtlSignal_sort_key(s: RtlSignalBase):

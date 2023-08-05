@@ -19,17 +19,13 @@ class StructValBase(HValue):
         self._dtype = typeObj
         if not skipCheck and val is not None:
             assert set(self.__slots__).issuperset(set(val.keys())), \
-                ("struct value specifies undefined members",
+                    ("struct value specifies undefined members",
                  set(val.keys()).difference(set(self.__slots__)))
 
         for f in self._dtype.fields:
             if f.name is None:
                 continue
-            if val is None:
-                v = None
-            else:
-                v = val.get(f.name, None)
-
+            v = None if val is None else val.get(f.name, None)
             if not isinstance(v, (HValue, RtlSignalBase)):
                 v = f.dtype.from_py(v)
 
@@ -80,39 +76,35 @@ class StructValBase(HValue):
         return d
 
     def __ne__(self, other):
-        if areHValues(self, other):
-            if self._dtype == other._dtype:
-                for f in self._dtype.fields:
-                    isPadding = f.name is None
-                    if not isPadding:
-                        sf = getattr(self, f.name)
-                        of = getattr(other, f.name)
-                        if (sf != of):
-                            return True
-                return False
-            else:
-                return True
-        else:
+        if not areHValues(self, other):
             return super(HValue, self).__ne__(other)
+        if self._dtype != other._dtype:
+            return True
+        for f in self._dtype.fields:
+            isPadding = f.name is None
+            if not isPadding:
+                sf = getattr(self, f.name)
+                of = getattr(other, f.name)
+                if (sf != of):
+                    return True
+        return False
 
     def _eq(self, other):
         return self.__eq__(other)
 
     def __eq__(self, other):
-        if areHValues(self, other):
-            if self._dtype == other._dtype:
-                for f in self._dtype.fields:
-                    isPadding = f.name is None
-                    if not isPadding:
-                        sf = getattr(self, f.name)
-                        of = getattr(other, f.name)
-                        if not (sf == of):
-                            return False
-                return True
-            else:
-                return False
-        else:
+        if not areHValues(self, other):
             return super(HValue, self).__eq__(other)
+        if self._dtype != other._dtype:
+            return False
+        for f in self._dtype.fields:
+            isPadding = f.name is None
+            if not isPadding:
+                sf = getattr(self, f.name)
+                of = getattr(other, f.name)
+                if not (sf == of):
+                    return False
+        return True
 
     def __repr__(self, indent=0):
         buff = ["{"]

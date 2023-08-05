@@ -71,10 +71,7 @@ class ToHdlAstVhdl2008_Value(ToHdlAst_Value):
         #    return hdl_call(cast_fn, [v, HdlValueInt(width, None, None)])
 
     def as_hdl_BoolVal(self, val: BitsVal):
-        if val.val:
-            return self.TRUE
-        else:
-            return self.FALSE
+        return self.TRUE if val.val else self.FALSE
 
     def as_hdl_BitsVal(self, val: BitsVal):
         t = val._dtype
@@ -95,13 +92,12 @@ class ToHdlAstVhdl2008_Value(ToHdlAst_Value):
 
     def as_hdl_HSliceVal(self, val: HSliceVal):
         upper = val.val.start
-        if int(val.val.step) == -1:
-            if isinstance(upper, HValue):
-                upper = HdlValueInt(int(upper) - 1, None, None)
-            else:
-                upper = HdlOp(HdlOpType.SUB, [self.as_hdl_Value(upper),
-                                                   HdlValueInt(1, None, None)])
-        else:
+        if int(val.val.step) != -1:
             raise NotImplementedError(val.val.step)
 
+        if isinstance(upper, HValue):
+            upper = HdlValueInt(int(upper) - 1, None, None)
+        else:
+            upper = HdlOp(HdlOpType.SUB, [self.as_hdl_Value(upper),
+                                               HdlValueInt(1, None, None)])
         return HdlOp(HdlOpType.DOWNTO, [upper, self.as_hdl(val.val.stop)])

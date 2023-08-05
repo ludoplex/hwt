@@ -73,11 +73,10 @@ def reduceSigCheckFnOr(op0Original:RtlSignalBase, op0Negated: bool, op1Negated:b
         # a | a -> a
         # ~a | ~a -> ~a
         return op0Original
-    else:
-        # a | ~a -> 1
-        # ~a | a -> 1
-        t = op0Original._dtype
-        return t.from_py(mask(t.bit_length()))
+    # a | ~a -> 1
+    # ~a | a -> 1
+    t = op0Original._dtype
+    return t.from_py(mask(t.bit_length()))
 
 
 def reduceSigCheckFnXor(op0Original:RtlSignalBase, op0Negated: bool, op1Negated:bool) -> Union[RtlSignalBase, HValue]:
