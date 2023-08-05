@@ -45,10 +45,7 @@ def connectPacked(srcPacked, dstInterface, exclude=None):
         t = sig._dtype
         w = t.bit_length()
         if w == 1:
-            if srcPacked._dtype.bit_length() == 1:
-                s = srcPacked
-            else:
-                s = srcPacked[offset]
+            s = srcPacked if srcPacked._dtype.bit_length() == 1 else srcPacked[offset]
             offset += 1
         else:
             s = srcPacked[(w + offset): offset] # src is likely to have insuficient amount of bits
@@ -81,26 +78,23 @@ def packIntf(intf, masterDirEqTo=DIRECTION.OUT, exclude=None) -> Union[BitsVal, 
     :param exclude: sequence of signals/interfaces to exclude
     """
     if not intf._interfaces:
-        if intf._masterDir == masterDirEqTo:
-            return intf._sig
-        return None
-
+        return intf._sig if intf._masterDir == masterDirEqTo else None
     res = None
     for i in intf._interfaces:
         if exclude is not None and i in exclude:
             continue
 
         if i._interfaces:
-            if i._masterDir == DIRECTION.IN:
-                d = DIRECTION.opposite(masterDirEqTo)
-            else:
-                d = masterDirEqTo
+            d = (
+                DIRECTION.opposite(masterDirEqTo)
+                if i._masterDir == DIRECTION.IN
+                else masterDirEqTo
+            )
             s = packIntf(i, masterDirEqTo=d, exclude=exclude)
+        elif i._masterDir == masterDirEqTo:
+            s = i._sig
         else:
-            if i._masterDir == masterDirEqTo:
-                s = i._sig
-            else:
-                s = None
+            s = None
 
         if s is not None:
             if res is None:

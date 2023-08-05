@@ -80,9 +80,7 @@ class HStreamVal(HValue):
 
         if isSLICE:
             raise NotImplementedError()
-        elif isinstance(key, (HValue, RtlSignalBase)):
-            pass
-        else:
+        elif not isinstance(key, (HValue, RtlSignalBase)):
             raise NotImplementedError(
                 f"Index operation not implemented for index {key}")
 

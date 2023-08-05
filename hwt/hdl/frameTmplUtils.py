@@ -95,7 +95,7 @@ class TransPartGroup(list):
         return self.endOfPart - self.startOfPart
 
     def __repr__(self):
-        return "<%s %s>" % (self.__class__.__name__, list.__repr__(self))
+        return f"<{self.__class__.__name__} {list.__repr__(self)}>"
 
 
 class ChoicesOfFrameParts(TransPartGroup):
@@ -136,7 +136,7 @@ class ChoiceOfFrameParts(list):
         self.tmpl = tmpl
 
     def __repr__(self):
-        return "<%s %s>" % (self.__class__.__name__, list.__repr__(self))
+        return f"<{self.__class__.__name__} {list.__repr__(self)}>"
 
 
 def groupIntoChoices(splitsOnWord, wordWidth: int, origin: OneOfTransaction):

@@ -54,9 +54,7 @@ def fitTo_t(what: Union[RtlSignalBase, HValue], where_t: Bits,
             ext = Bits(w).from_py(0)
 
         res = ext._concat(what)
-        if where_t.signed is not None:
-            return res._reinterpret_cast(where_t)
-        return res
+        return res._reinterpret_cast(where_t) if where_t.signed is not None else res
 
 
 def fitTo(what: Union[RtlSignalBase, HValue], where: Union[RtlSignalBase, HValue],
@@ -99,7 +97,7 @@ class BitWalker():
             in data structure
         """
         if not isinstance(numberOfBits, int):
-            numberOfBits = int(numberOfBits)
+            numberOfBits = numberOfBits
 
         while self.actuallyHave < numberOfBits:
             # accumulate while not has enough
@@ -118,13 +116,12 @@ class BitWalker():
                 else:
                     self.actual = f
                     self.actuallyHave = thisFieldLen
+            elif not doCollect and self.actuallyHave < numberOfBits:
+                self.actuallyHave = thisFieldLen
+                self.actual = f
             else:
-                if not doCollect and self.actuallyHave < numberOfBits:
-                    self.actuallyHave = thisFieldLen
-                    self.actual = f
-                else:
-                    self.actuallyHave += thisFieldLen
-                    self.actual = f._concat(self.actual)
+                self.actuallyHave += thisFieldLen
+                self.actual = f._concat(self.actual)
 
         # slice out from actual
         actual = self.actual

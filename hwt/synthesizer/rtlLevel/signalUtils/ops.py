@@ -74,11 +74,11 @@ class RtlSignalOps():
         except AttributeError:
             op_instantiated = False
 
-        usedOpsAlias = self._usedOpsAlias
         if op_instantiated:
             # try check real operands and operator which were used after all default type conversions
             k_real = (operator, indexOfSelfInOperands, *o.origin.operands[1:])
             if k != k_real:
+                usedOpsAlias = self._usedOpsAlias
                 alias = usedOpsAlias[k_real]
                 usedOpsAlias[k] = alias
                 alias.add(k)
@@ -349,12 +349,11 @@ class RtlSignalOps():
                 if op == AllOps.INDEX:
                     # get signal on which is index applied
                     indexedOn = d.operands[0]
-                    if isinstance(indexedOn, RtlSignalBase):
-                        intf = indexedOn
-                        indexes.append(d.operands[1])
-                    else:
+                    if not isinstance(indexedOn, RtlSignalBase):
                         raise HwtSyntaxError(
                             f"can not assign to a static value {indexedOn}")
+                    intf = indexedOn
+                    indexes.append(d.operands[1])
                 elif op in CAST_OPS:
                     sign_cast_seen = True
                     intf = d.operands[0]
@@ -429,36 +428,35 @@ class RtlSignalOps():
                 d = None
             operator = getattr(d, "operator", None)
             if operator is not None:
-                if operator.allowsAssignTo:
-                    if operator == AllOps.NOT:
-                        # instead of assigning to negation we assign the negation
-                        return d.operands[0](~source, dst_resolve_fn=dst_resolve_fn, exclude=exclude, fit=fit)
-                    elif operator in CAST_OPS:
-                        # we need to assert that src and dst type matches, but we do not anything else
-                        dst = d.operands[0]
-                        src_sign = source._dtype.signed
-                        dst_sign = dst._dtype.signed
-                        if src_sign == dst_sign:
-                            return dst(source)
-                        elif dst_sign is None:
-                            return dst(source._vec())
-                        elif dst_sign:
-                            return dst(source._signed())
-                        else:
-                            return dst(source._unsigned())
-
-                    elif operator == AllOps.CONCAT:
-                        offset = 0
-                        res = []
-                        # reversed because LSB first
-                        for op in reversed(d.operands):
-                            w = op._dtype.bit_length()
-                            res.append(op(source[w + offset: offset]))
-                            offset += w
-                        return res
-                else:
+                if not operator.allowsAssignTo:
                     raise AssertionError("Assignment to", self, "is not allowed by operator definition")
 
+                if operator == AllOps.NOT:
+                    # instead of assigning to negation we assign the negation
+                    return d.operands[0](~source, dst_resolve_fn=dst_resolve_fn, exclude=exclude, fit=fit)
+                elif operator in CAST_OPS:
+                    # we need to assert that src and dst type matches, but we do not anything else
+                    dst = d.operands[0]
+                    src_sign = source._dtype.signed
+                    dst_sign = dst._dtype.signed
+                    if src_sign == dst_sign:
+                        return dst(source)
+                    elif dst_sign is None:
+                        return dst(source._vec())
+                    elif dst_sign:
+                        return dst(source._signed())
+                    else:
+                        return dst(source._unsigned())
+
+                elif operator == AllOps.CONCAT:
+                    offset = 0
+                    res = []
+                    # reversed because LSB first
+                    for op in reversed(d.operands):
+                        w = op._dtype.bit_length()
+                        res.append(op(source[w + offset: offset]))
+                        offset += w
+                    return res
         try:
             mainSig, indexCascade, signCastSeen = self._getIndexCascade()
             mainSig = dst_resolve_fn(mainSig)

@@ -45,7 +45,7 @@ class TmpVarConstructor():
 
         if def_val is not None:
             s.def_val = def_val
-            if not (isinstance(def_val, RtlSignalBase) and not def_val._const):
+            if not isinstance(def_val, RtlSignalBase) or def_val._const:
                 s._set_def_val()
 
         if not postponed_init:

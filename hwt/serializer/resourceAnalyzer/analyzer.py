@@ -80,10 +80,7 @@ class ResourceAnalyzer():
                 elif d.operator == AllOps.INDEX:
                     o1 = d.operands[1]
                     skip_op = True
-                    if isConst(o1):
-                        # constant signal slice
-                        pass
-                    else:
+                    if not isConst(o1):
                         o0 = d.operands[0]
                         if isinstance(o0._dtype, HArray):
                             ctx.registerRAM_read_port(o0, o1, synchronous)
@@ -150,7 +147,7 @@ class ResourceAnalyzer():
                     continue
 
             if isinstance(stm, SwitchContainer):
-                caseEqs = set([stm.switchOn._eq(c[0]) for c in stm.cases])
+                caseEqs = {stm.switchOn._eq(c[0]) for c in stm.cases}
                 inputs = chain(
                     [sig for sig in stm._inputs if sig not in caseEqs], [stm.switchOn])
             else:

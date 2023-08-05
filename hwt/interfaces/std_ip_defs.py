@@ -30,11 +30,11 @@ class IP_Clk(IntfIpMeta):
         if rst:
             if len(rst) > 1:
                 rst = [intf for intf in rst if intf._getAssociatedClk() is thisIf]
-                if len(rst) > 0:
+                if rst:
                     raise AssertionError(
                         "Multiple associated resets for this interface",
                         thisIf)
-                elif not rst:
+                else:
                     raise AssertionError("Multiple reset signals"
                                          " but none of them is associated",
                                          thisIf)

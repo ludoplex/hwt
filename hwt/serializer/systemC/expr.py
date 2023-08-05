@@ -77,13 +77,15 @@ class ToHdlAstSystemC_expr(ToHdlAst_Value):
         else:
             if si.hidden and si.origin is not None:
                 return self.as_hdl(si.origin)
-            else:
-                sigType = systemCTypeOfSig(si)
-                _si = HdlValueId(si.name, obj=si)
-                if self._in_sensitivity_list or self._is_target or sigType is SIGNAL_TYPE.REG:
-                    return _si
-                else:
-                    return hdl_call(hdl_getattr(_si, "read"), [])
+            sigType = systemCTypeOfSig(si)
+            _si = HdlValueId(si.name, obj=si)
+            return (
+                _si
+                if self._in_sensitivity_list
+                or self._is_target
+                or sigType is SIGNAL_TYPE.REG
+                else hdl_call(hdl_getattr(_si, "read"), [])
+            )
 
     def as_hdl_BitsVal(self, val):
         t = val._dtype

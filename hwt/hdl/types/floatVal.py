@@ -21,7 +21,7 @@ class HFloatVal(HValue, FloattVal):
         assert vld_mask is None, vld_mask
         if isinstance(val, int):
             val = float(val)
-            if float(val) != val:
+            if val != val:
                 raise NotImplementedError("Need to implement better conversion method")
 
         if val is None:
@@ -66,9 +66,8 @@ class HFloatVal(HValue, FloattVal):
 
         if self_is_val and other_is_val:
             return self._eq__val(other)
-        else:
-            assert self._dtype == other._dtype, (self, self._dtype, other, other._dtype)
-            return Operator.withRes(AllOps.EQ, [self, other], BOOL)
+        assert self._dtype == other._dtype, (self, self._dtype, other, other._dtype)
+        return Operator.withRes(AllOps.EQ, [self, other], BOOL)
 
     def __copy__(self):
         v = HValue.__copy__(self)

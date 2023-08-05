@@ -56,16 +56,16 @@ class HdlPortItem():
         if self.direction == DIRECTION.OUT:
             if self.src is not None:
                 raise HwtSyntaxError(
-                    "Port %s is already associated with signal %s"
-                    % (self.name, str(self.src)))
+                    f"Port {self.name} is already associated with signal {str(self.src)}"
+                )
             self.src = signal
             self.src.endpoints.append(self)
 
         elif self.direction == DIRECTION.IN:
             if self.dst is not None:
                 raise HwtSyntaxError(
-                    "Port %s is already associated with signal %s"
-                    % (self.name, str(self.dst)))
+                    f"Port {self.name} is already associated with signal {str(self.dst)}"
+                )
             self.dst = signal
             self.dst.drivers.append(self)
         else:
@@ -103,7 +103,6 @@ class HdlPortItem():
         :see: :meth:`hwt.synthesizer.rtlLevel.rtlSignal.RtlSignal._walk_sensitivity`
         """
         return
-        yield
 
     def __repr__(self):
         return f"<{self.__class__.__name__:s} src:{self.src}, dst:{self.dst}>"

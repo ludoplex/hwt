@@ -33,12 +33,11 @@ class SerializerFilter(object):
         if sd is None:
             # the :class:`hwt.synthesizer.unit.Unit` instance does not have any filter function
             return True, None
-        else:
-            # use UnitInstance filer function
-            prevPriv = self.serializedClasses.get(unit.__class__, None)
-            do_serialize, nextPriv, replacement = sd(unit, prevPriv)
-            self.serializedClasses[unit.__class__] = nextPriv
-            return do_serialize, replacement
+        # use UnitInstance filer function
+        prevPriv = self.serializedClasses.get(unit.__class__, None)
+        do_serialize, nextPriv, replacement = sd(unit, prevPriv)
+        self.serializedClasses[unit.__class__] = nextPriv
+        return do_serialize, replacement
 
 
 class SerializerFilterAll(SerializerFilter):

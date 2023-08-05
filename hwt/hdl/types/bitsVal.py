@@ -66,22 +66,21 @@ class BitsVal(Bits3val, EventCapableVal, HValue):
         """
         if isinstance(self, HValue):
             return self._convSign__val(signed)
+        if self._dtype.signed == signed:
+            return self
+        t = copy(self._dtype)
+        t.signed = signed
+        if t.signed is not None:
+            t.force_vector = True
+
+        if signed is None:
+            cnv = AllOps.BitsAsVec
+        elif signed:
+            cnv = AllOps.BitsAsSigned
         else:
-            if self._dtype.signed == signed:
-                return self
-            t = copy(self._dtype)
-            t.signed = signed
-            if t.signed is not None:
-                t.force_vector = True
+            cnv = AllOps.BitsAsUnsigned
 
-            if signed is None:
-                cnv = AllOps.BitsAsVec
-            elif signed:
-                cnv = AllOps.BitsAsSigned
-            else:
-                cnv = AllOps.BitsAsUnsigned
-
-            return Operator.withRes(cnv, [self], t)
+        return Operator.withRes(cnv, [self], t)
 
     def _auto_cast(self, dtype):
         return HValue._auto_cast(self, dtype)
@@ -112,30 +111,29 @@ class BitsVal(Bits3val, EventCapableVal, HValue):
         self = self._vec()
         if areHValues(self, other):
             return self._concat__val(other)
+        w = self._dtype.bit_length()
+        other_w = other._dtype.bit_length()
+        resWidth = w + other_w
+        Bits = self._dtype.__class__
+        resT = Bits(resWidth, signed=self._dtype.signed, force_vector=True)
+        # is instance of signal
+        if isinstance(other, InterfaceBase):
+            other = other._sig
+
+        if other._dtype == BOOL:
+            other = other._auto_cast(BIT)
+        elif isinstance(other._dtype, Bits):
+            if other._dtype.signed is not None:
+                other = other._vec()
         else:
-            w = self._dtype.bit_length()
-            other_w = other._dtype.bit_length()
-            resWidth = w + other_w
-            Bits = self._dtype.__class__
-            resT = Bits(resWidth, signed=self._dtype.signed, force_vector=True)
-            # is instance of signal
-            if isinstance(other, InterfaceBase):
-                other = other._sig
+            raise TypeError(other._dtype)
 
-            if other._dtype == BOOL:
-                other = other._auto_cast(BIT)
-            elif isinstance(other._dtype, Bits):
-                if other._dtype.signed is not None:
-                    other = other._vec()
-            else:
-                raise TypeError(other._dtype)
+        if self._dtype.signed is not None:
+            self = self._vec()
 
-            if self._dtype.signed is not None:
-                self = self._vec()
-
-            return Operator.withRes(AllOps.CONCAT, [self, other], resT)\
+        return Operator.withRes(AllOps.CONCAT, [self, other], resT)\
                            ._auto_cast(Bits(resWidth,
-                                            signed=self._dtype.signed))
+                                        signed=self._dtype.signed))
 
     def __getitem__(self, key):
         """
@@ -163,23 +161,23 @@ class BitsVal(Bits3val, EventCapableVal, HValue):
         length = st.bit_length()
 
         if isinstance(key, slice):
-            
+
             key = slice_to_SLICE(key, length)
             isSLICE = True
         else:
             isSLICE = isinstance(key, HSlice.getValueCls())
 
         is1bScalar = length == 1 and not st.force_vector
-        if not isSLICE:
-            if is1bScalar and \
-                    ((isinstance(key, int) and key == 0) or\
-                     (isinstance(key, BitsVal) and key._is_full_valid() and int(key) == 0)):
-                return self
-            key = toHVal(key, INT)
-        else:
+        if isSLICE:
             if is1bScalar and key.val.start == 1 and key.val.stop == 0 and key.val.step == -1:
                 return self
 
+        elif is1bScalar and \
+                        ((isinstance(key, int) and key == 0) or\
+                         (isinstance(key, BitsVal) and key._is_full_valid() and int(key) == 0)):
+            return self
+        else:
+            key = toHVal(key, INT)
         if is1bScalar:
             # assert not indexing on single bit
             raise IndexError("indexing on single bit")
@@ -236,25 +234,21 @@ class BitsVal(Bits3val, EventCapableVal, HValue):
                     op_l_w = op_l._dtype.bit_length()
                     assert start > stop, (start, stop, "Should be in MSB:LSB format")
                     if start <= op_l_w:
-                        # entirely in first operand of concat
-                        if op_l_w == 1:
-                            if isinstance(key._dtype, HSlice):
-                                assert int(key.val.start) == 1 and int(key.val.stop) == 0 and int(key.val.step) == -1, key
-                                return op_l
-                            else:
-                                assert int(key) == 0, key
-                                return op_l
-                        else:
+                        if op_l_w != 1:
                             return op_l[key]
+                        if isinstance(key._dtype, HSlice):
+                            assert int(key.val.start) == 1 and int(key.val.stop) == 0 and int(key.val.step) == -1, key
+                        else:
+                            assert int(key) == 0, key
+                        return op_l
                     elif stop >= op_l_w:
                         # intirely in second operand of concat
                         start -= op_l_w
                         stop -= op_l_w
-                        if op_h._dtype.bit_length() == 1:
-                            assert start - stop == 1
-                            return op_h
-                        else:
+                        if op_h._dtype.bit_length() != 1:
                             return op_h[key._dtype.from_py(slice(start, stop, -1))]
+                        assert start - stop == 1
+                        return op_h
                     else:
                         # partially in op_h and op_l, allpy slice on concat operands and return concatenation of it
                         if stop != 0 or op_l._dtype.bit_length() > 1:
@@ -374,15 +368,14 @@ class BitsVal(Bits3val, EventCapableVal, HValue):
     def __invert__(self):
         if isinstance(self, HValue):
             return Bits3val.__invert__(self)
-        else:
-            try:
-                # double negation
-                d = self.singleDriver()
-                if isinstance(d, Operator) and d.operator == AllOps.NOT:
-                    return d.operands[0]
-            except SignalDriverErr:
-                pass
-            return Operator.withRes(AllOps.NOT, [self], self._dtype)
+        try:
+            # double negation
+            d = self.singleDriver()
+            if isinstance(d, Operator) and d.operator == AllOps.NOT:
+                return d.operands[0]
+        except SignalDriverErr:
+            pass
+        return Operator.withRes(AllOps.NOT, [self], self._dtype)
 
     def __hash__(self):
         if isinstance(self, RtlSignalBase):
@@ -450,14 +443,13 @@ class BitsVal(Bits3val, EventCapableVal, HValue):
     def __neg__(self):
         if isinstance(self, HValue):
             return Bits3val.__neg__(self)
-        else:
-            if not self._dtype.signed:
-                self = self._signed()
+        if not self._dtype.signed:
+            self = self._signed()
 
-            resT = self._dtype
+        resT = self._dtype
 
-            o = Operator.withRes(AllOps.MINUS_UNARY, [self], self._dtype)
-            return o._auto_cast(resT)
+        o = Operator.withRes(AllOps.MINUS_UNARY, [self], self._dtype)
+        return o._auto_cast(resT)
 
     def __sub__(self, other):
         return bitsArithOp(self, other, AllOps.SUB)
@@ -469,12 +461,11 @@ class BitsVal(Bits3val, EventCapableVal, HValue):
         other = toHVal(other, suggestedType=self._dtype)
         if isinstance(self, HValue) and isinstance(other, HValue):
             return Bits3val.__floordiv__(self, other)
-        else:
-            if not isinstance(other._dtype, self._dtype.__class__):
-                raise TypeError()
-            return Operator.withRes(AllOps.DIV,
-                                    [self, other],
-                                    self._dtype.__copy__())
+        if not isinstance(other._dtype, self._dtype.__class__):
+            raise TypeError()
+        return Operator.withRes(AllOps.DIV,
+                                [self, other],
+                                self._dtype.__copy__())
 
     def __pow__(self, other):
         raise TypeError(f"** operator not implemented for instance of {self.__class__}")
@@ -484,27 +475,23 @@ class BitsVal(Bits3val, EventCapableVal, HValue):
 
     def _ternary(self, a, b):
         if isinstance(self, HValue):
-            if self:
+            return a if self else b
+        a = toHVal(a)
+        b = toHVal(b, suggestedType=a._dtype)
+        try:
+            if a == b:
                 return a
-            else:
-                return b
-        else:
-            a = toHVal(a)
-            b = toHVal(b, suggestedType=a._dtype)
-            try:
-                if a == b:
-                    return a
-            except ValidityError:
-                pass
+        except ValidityError:
+            pass
 
-            if not (a._dtype == b._dtype):
-                # all case values of ternary has to have same type
-                b = b._auto_cast(a._dtype)
+        if a._dtype != b._dtype:
+            # all case values of ternary has to have same type
+            b = b._auto_cast(a._dtype)
 
-            return Operator.withRes(
-                AllOps.TERNARY,
-                [self, a, b],
-                a._dtype.__copy__())
+        return Operator.withRes(
+            AllOps.TERNARY,
+            [self, a, b],
+            a._dtype.__copy__())
 
     def __mul__(self, other):
         Bits = self._dtype.__class__
@@ -517,45 +504,43 @@ class BitsVal(Bits3val, EventCapableVal, HValue):
 
         if self_is_val and other_is_val:
             return Bits3val.__mul__(self, other)
+        # reduce *1 and *0
+        if self_is_val and self._is_full_valid():
+            _s = int(self)
+            if _s == 0:
+                return self._dtype.from_py(0)
+            elif _s:
+                return other._auto_cast(self._dtype)
+
+        if other_is_val and other._is_full_valid():
+            _o = int(other)
+            if _o == 0:
+                return self._dtype.from_py(0)
+            elif _o == 1:
+                return self
+
+        myT = self._dtype
+        if self._dtype.signed is None:
+            self = self._unsigned()
+
+        if not isinstance(other._dtype, Bits):
+            raise TypeError(f"{self} {AllOps.MUL} {other}")
+
+        s = other._dtype.signed
+        if s is None:
+            other = other._unsigned()
+        if other._dtype == INT:
+            res_w = myT.bit_length()
+            res_sign = self._dtype.signed
+            subResT = resT = myT
         else:
-            # reduce *1 and *0
-            if self_is_val and self._is_full_valid():
-                _s = int(self)
-                if _s == 0:
-                    return self._dtype.from_py(0)
-                elif _s:
-                    return other._auto_cast(self._dtype)
+            res_w = max(myT.bit_length(), other._dtype.bit_length())
+            res_sign = self._dtype.signed or other._dtype.signed
+            subResT = Bits(res_w, signed=res_sign)
+            resT = Bits(res_w, signed=myT.signed)
 
-            if other_is_val and other._is_full_valid():
-                _o = int(other)
-                if _o == 0:
-                    return self._dtype.from_py(0)
-                elif _o == 1:
-                    return self
-
-            myT = self._dtype
-            if self._dtype.signed is None:
-                self = self._unsigned()
-
-            if isinstance(other._dtype, Bits):
-                s = other._dtype.signed
-                if s is None:
-                    other = other._unsigned()
-            else:
-                raise TypeError(f"{self} {AllOps.MUL} {other}")
-
-            if other._dtype == INT:
-                res_w = myT.bit_length()
-                res_sign = self._dtype.signed
-                subResT = resT = myT
-            else:
-                res_w = max(myT.bit_length(), other._dtype.bit_length())
-                res_sign = self._dtype.signed or other._dtype.signed
-                subResT = Bits(res_w, signed=res_sign)
-                resT = Bits(res_w, signed=myT.signed)
-
-            o = Operator.withRes(AllOps.MUL, [self, other], subResT)
-            return o._auto_cast(resT)
+        o = Operator.withRes(AllOps.MUL, [self, other], subResT)
+        return o._auto_cast(resT)
     
     def __len__(self):
         return self._dtype.bit_length()

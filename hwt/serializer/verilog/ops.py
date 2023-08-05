@@ -39,8 +39,8 @@ class ToHdlAstVerilog_ops():
         #        as tmp variable
         #        * maybe flatten the concatenations
         if operator.operator != AllOps.CONCAT\
-                and self._operandIsAnotherOperand(operand)\
-                and operand.origin.operator == AllOps.CONCAT:
+                    and self._operandIsAnotherOperand(operand)\
+                    and operand.origin.operator == AllOps.CONCAT:
             _, tmpVar = self.tmpVars.create_var_cached("tmp_concat_", operand._dtype, def_val=operand)
             # HdlAssignmentContainer(tmpVar, operand, virtual_only=True)
             operand = tmpVar
@@ -50,13 +50,19 @@ class ToHdlAstVerilog_ops():
 
         oper = operator.operator
         width = None
-        if not isinstance(operand, RtlSignal) and operand._dtype == INT and\
-           oper not in [AllOps.BitsAsUnsigned,
-                        AllOps.BitsAsVec,
-                        AllOps.BitsAsSigned,
-                        AllOps.INDEX] and\
-                operator.result is not None and\
-                not operator.result._dtype == INT:
+        if (
+            not isinstance(operand, RtlSignal)
+            and operand._dtype == INT
+            and oper
+            not in [
+                AllOps.BitsAsUnsigned,
+                AllOps.BitsAsVec,
+                AllOps.BitsAsSigned,
+                AllOps.INDEX,
+            ]
+            and operator.result is not None
+            and operator.result._dtype != INT
+        ):
             # have to lock the width
             for o in operator.operands:
                 try:
@@ -70,11 +76,10 @@ class ToHdlAstVerilog_ops():
             assert width is not None, (operator, operand)
         hdl_op = self.as_hdl_Value(operand)
         if width is not None:
-            if isinstance(hdl_op, HdlValueInt):
-                assert isinstance(width, int), width
-                hdl_op.bits = width
-            else:
+            if not isinstance(hdl_op, HdlValueInt):
                 return HdlOp(HdlOpType.APOSTROPHE, [self.as_hdl_int(width), hdl_op])
+            assert isinstance(width, int), width
+            hdl_op.bits = width
         return hdl_op
 
     def as_hdl_Operator(self, op: Operator):
@@ -85,26 +90,21 @@ class ToHdlAstVerilog_ops():
             if ops[1] == one and ops[2] == zero:
                 # ignore redundant x ? 1 : 0
                 return self.as_hdl_cond(ops[0], True)
-            else:
-                op0 = self.as_hdl_cond(ops[0], True)
-                op1 = self.as_hdl_operand(ops[1], 1, op)
-                op2 = self.as_hdl_operand(ops[2], 2, op)
-                return HdlOp(HdlOpType.TERNARY, [op0, op1, op2])
-        elif o == AllOps.RISING_EDGE or o == AllOps.FALLING_EDGE:
+            op0 = self.as_hdl_cond(ops[0], True)
+            op1 = self.as_hdl_operand(ops[1], 1, op)
+            op2 = self.as_hdl_operand(ops[2], 2, op)
+            return HdlOp(HdlOpType.TERNARY, [op0, op1, op2])
+        elif o in [AllOps.RISING_EDGE, AllOps.FALLING_EDGE]:
             raise UnsupportedEventOpErr()
         elif o in [AllOps.BitsAsUnsigned, AllOps.BitsAsVec, AllOps.BitsAsSigned]:
             op0, = ops
             do_cast = bool(op0._dtype.signed) != bool(op.result._dtype.signed)
 
             op_hdl = self.as_hdl_operand(op0, 0, op)
-            if do_cast:
-                if bool(op0._dtype.signed):
-                    cast = self.SIGNED
-                else:
-                    cast = self.UNSIGNED
-                return hdl_call(cast, [op_hdl, ])
-            else:
+            if not do_cast:
                 return op_hdl
+            cast = self.SIGNED if bool(op0._dtype.signed) else self.UNSIGNED
+            return hdl_call(cast, [op_hdl, ])
         else:
             op0_t = ops[0]._dtype
             if o == AllOps.INDEX and isinstance(op0_t, Bits) and op0_t.bit_length() == 1 and not op0_t.force_vector:

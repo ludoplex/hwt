@@ -21,17 +21,13 @@ def pprintInterface(intf: Union[Unit, InterfaceBase], indent:int=0, prefix:str="
         s = intf._sig
     except AttributeError:
         s = None
-    if s is None:
-        s = ""
-    else:
-        s = " " + repr(s)
-
+    s = "" if s is None else f" {repr(s)}"
     file.write("".join([getIndent(indent), prefix, repr(intf._getFullName()),
                         s]))
     file.write("\n")
 
     if isinstance(intf, HObjList):
-        for i, p in enumerate(intf):
+        for p in intf:
             # interfaces have already name of this array and index in it's name
             pprintInterface(p, indent=indent + 1, prefix=prefix, file=file)
     else:
@@ -115,13 +111,7 @@ def allValuesToInts(sequenceOrVal):
         return sequenceOrVal
     elif (isinstance(sequenceOrVal, (list, tuple, deque))
           or isgenerator(sequenceOrVal)):
-        seq = []
-        for i in sequenceOrVal:
-            seq.append(allValuesToInts(i))
-
-        if isinstance(sequenceOrVal, tuple):
-            return tuple(seq)
-
-        return seq
+        seq = [allValuesToInts(i) for i in sequenceOrVal]
+        return tuple(seq) if isinstance(sequenceOrVal, tuple) else seq
     else:
         return sequenceOrVal

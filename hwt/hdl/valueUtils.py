@@ -25,9 +25,6 @@ def areSameHVals(a: Union[None, List[HValue]],
     if a is None or b is None:
         return False
     if len(a) == len(b):
-        for a_, b_ in zip(a, b):
-            if not isSameHVal(a_, b_):
-                return False
-        return True
+        return all(isSameHVal(a_, b_) for a_, b_ in zip(a, b))
     else:
         return False

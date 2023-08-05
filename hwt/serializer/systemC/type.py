@@ -37,16 +37,9 @@ class ToHdlAstSystemC_type():
         w = typ.bit_length()
 
         if w <= 64:
-            if typ.signed:
-                typeBaseName = self.sc_int
-            else:
-                typeBaseName = self.sc_uint
+            typeBaseName = self.sc_int if typ.signed else self.sc_uint
         else:
-            if typ.signed:
-                typeBaseName = self.sc_bigint
-            else:
-                typeBaseName = self.sc_biguint
-
+            typeBaseName = self.sc_bigint if typ.signed else self.sc_biguint
         t = HdlOp(HdlOpType.PARAMETRIZATION,
                     [typeBaseName, self.as_hdl_int(w)])
         if self.signalType == SIGNAL_TYPE.WIRE:
@@ -57,10 +50,9 @@ class ToHdlAstSystemC_type():
         if declaration:
             return super(ToHdlAstSystemC_type, self).as_hdl_HdlType_array(
                 self, typ, declaration=declaration)
-        else:
-            _int = self.as_hdl_int
-            size = _int(int(typ.size))
-            return hdl_index(self.as_hdl_HdlType(typ.element_t), size)
+        _int = self.as_hdl_int
+        size = _int(int(typ.size))
+        return hdl_index(self.as_hdl_HdlType(typ.element_t), size)
 
     def as_hdl_HdlType_enum(self, typ: HEnum, declaration=False):
         return ToHdlAstVerilog_types.as_hdl_HdlType_enum(

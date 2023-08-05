@@ -43,8 +43,10 @@ class SignalDriverErr(Exception):
             if prev_err_t is None or prev_err_t != err_t:
                 b.append(SignalDriverErrType_labels[err_t])
                 prev_err_t = err_t
-            if err_t == SignalDriverErrType.MULTIPLE_COMB_DRIVERS or\
-                    err_t == SignalDriverErrType.INPUT_WITH_DRIVER:
+            if err_t in [
+                SignalDriverErrType.MULTIPLE_COMB_DRIVERS,
+                SignalDriverErrType.INPUT_WITH_DRIVER,
+            ]:
                 b.append(f"    {sig}: {sig.drivers}")
             else:
                 b.append(f"    {sig}")

@@ -49,7 +49,7 @@ class ToHdlAstVerilog(ToHdlAstVerilog_types,
                 if v.value.vld_mask:
                     rom = v.origin
                     p = HdlStmProcess()
-                    label = self.name_scope.checked_name(rom.name + "_rom_init", p)
+                    label = self.name_scope.checked_name(f"{rom.name}_rom_init", p)
                     p.labels.append(label)
                     p.body = HdlStmBlock()
                     body = p.body.body
@@ -66,11 +66,7 @@ class ToHdlAstVerilog(ToHdlAstVerilog_types,
                 new_v.is_const = False
                 new_v.value = None
             elif new_v.value is not None:
-                if new_v.value.vld_mask:
-                    new_v.value = self.as_hdl_Value(new_v.value)
-                else:
-                    # 'x' is a default value no need to specify it extra
-                    new_v.value = None
+                new_v.value = self.as_hdl_Value(new_v.value) if new_v.value.vld_mask else None
             return new_v
 
     def _static_assert_false(self, msg:str):
@@ -95,7 +91,7 @@ class ToHdlAstVerilog(ToHdlAstVerilog_types,
         with SignalTypeSwap(self, SIGNAL_TYPE.PORT_WIRE):
             new_v = copy(g)
             v = g.value
-            if v._dtype == STR or v._dtype == INT or v._dtype == BOOL:
+            if v._dtype in [STR, INT, BOOL]:
                 t = HdlTypeAuto
             else:
                 t = self.as_hdl_HdlType(v._dtype)

@@ -75,7 +75,7 @@ class Bits(HdlType, Bits3t):
         """
         constr = []
         if self.name is not None:
-            constr.append('"%s"' % self.name)
+            constr.append(f'"{self.name}"')
         c = self.bit_length()
         if c == 1:
             constr.append("1bit")
@@ -98,6 +98,4 @@ class Bits(HdlType, Bits3t):
         if not self.strict_width:
             constr.append("strict_width=False")
 
-        return "%s<%s, %s>" % (getIndent(indent),
-                               self.__class__.__name__,
-                               ", ".join(constr))
+        return f'{getIndent(indent)}<{self.__class__.__name__}, {", ".join(constr)}>'

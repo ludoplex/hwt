@@ -84,9 +84,10 @@ class RtlNetlist():
             else:
                 # has to be tuple of (clk_sig, AllOps.RISING/FALLING_EDGE)
                 clk, clk_edge = clk
-                if clk_edge is AllOps.RISING_EDGE:
-                    clk_trigger = clk._onRisingEdge()
-                elif clk_edge is AllOps.FALLING_EDGE:
+                if (
+                    clk_edge is AllOps.RISING_EDGE
+                    or clk_edge is AllOps.FALLING_EDGE
+                ):
                     clk_trigger = clk._onRisingEdge()
                 else:
                     raise ValueError(
@@ -171,7 +172,7 @@ class RtlNetlist():
             ci = HdlCompInst()
             ci.origin = u
             ci.module_name = HdlValueId(u._ctx.ent.name, obj=u._ctx.ent)
-            ci.name = HdlValueId(ns.checked_name(u._name + "_inst", ci), obj=u)
+            ci.name = HdlValueId(ns.checked_name(f"{u._name}_inst", ci), obj=u)
             e = u._ctx.ent
 
             ci.param_map.extend(e.params)

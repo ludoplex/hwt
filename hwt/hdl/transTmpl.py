@@ -266,11 +266,7 @@ class TransTmpl(object):
         except (AttributeError, IndexError):
             name = None
 
-        if name:
-            name = f" name:{name:s},"
-        else:
-            name = ""
-
+        name = f" name:{name:s}," if name else ""
         s = f"{offsetStr:s}<TransTmpl{name} start:{self.bitAddr:d}, end:{self.bitAddrEnd:d}"
         if isinstance(self.dtype, (HArray, HStream)):
             s_buff = [
@@ -280,15 +276,15 @@ class TransTmpl(object):
             ]
             return "".join(s_buff)
         elif not self.children:
-            return s + ">"
+            return f"{s}>"
 
         buff = [s, ]
         for isLast, child in iter_with_last(self.children):
             buff.append(child.__repr__(offset=offset + 1))
             if self.childrenAreChoice and not isLast:
-                buff.append(offsetStr + "    <OR>")
+                buff.append(f"{offsetStr}    <OR>")
 
-        buff.append(offsetStr + ">")
+        buff.append(f"{offsetStr}>")
         return "\n".join(buff)
 
 

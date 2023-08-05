@@ -106,13 +106,13 @@ class BasicRtlSimulatorWithSignalRegisterMethods(BasicRtlSimulator):
             if unique_name in sys.modules:
                 del sys.modules[unique_name]
             simModule = importlib.import_module(
-                unique_name + "." + unique_name,
-                package='simModule_' + unique_name)
+                f"{unique_name}.{unique_name}", package=f'simModule_{unique_name}'
+            )
 
             if not dInPath:
                 sys.path.pop(0)
         else:
-            simModule = ModuleType('simModule_' + unique_name)
+            simModule = ModuleType(f'simModule_{unique_name}')
             # python supports only ~100 opened brackets; MemoryError: s_push: parser stack overflow
             # python supports only ~100 levels of indentation; IndentationError: too many levels of indentation
             exec(buff.getvalue(),
@@ -158,9 +158,8 @@ class BasicRtlSimulatorWithSignalRegisterMethods(BasicRtlSimulator):
                                    obj: Union[Interface, Unit],
                                    model: BasicRtlSimModel,
                                    res: Set[Union[Unit, Interface]]):
-        intfs = getattr(obj, "_interfaces", None)
         isEmpty = True
-        if intfs:
+        if intfs := getattr(obj, "_interfaces", None):
             for chIntf in intfs:
                 isEmpty &= self._collect_empty_hiearchy_containers(chIntf, model, res)
 
@@ -173,7 +172,7 @@ class BasicRtlSimulatorWithSignalRegisterMethods(BasicRtlSimulator):
                         isEmpty &= self._collect_empty_hiearchy_containers(chIntf, model, res)
 
                 for u in obj._units:
-                    m = getattr(model, u._name + "_inst")
+                    m = getattr(model, f"{u._name}_inst")
                     if u._shared_component_with is not None:
                         u, _, _ = u._shared_component_with
                     isEmpty &= self._collect_empty_hiearchy_containers(u, m, res)
@@ -185,8 +184,8 @@ class BasicRtlSimulatorWithSignalRegisterMethods(BasicRtlSimulator):
                 # _sigInside is None if the signal was optimized out
                 sig_name = s.name
                 s = getattr(model.io, sig_name, None)
-                if s is not None:
-                    return False
+            if s is not None:
+                return False
         return isEmpty
 
     def _wave_register_signals(self,
@@ -200,10 +199,7 @@ class BasicRtlSimulatorWithSignalRegisterMethods(BasicRtlSimulator):
         if obj in empty_hiearchy_containers:
             return
         if obj._interfaces:
-            if isinstance(obj, Unit):
-                name = model._name
-            else:
-                name = obj._name
+            name = model._name if isinstance(obj, Unit) else obj._name
             parent_ = self.wave_writer if parent is None else parent
 
             subScope = parent_.varScope(name)
@@ -221,7 +217,7 @@ class BasicRtlSimulatorWithSignalRegisterMethods(BasicRtlSimulator):
 
                     # register interfaces from all subunits
                     for u in obj._units:
-                        m = getattr(model, u._name + "_inst")
+                        m = getattr(model, f"{u._name}_inst")
                         if u._shared_component_with is not None:
                             u, _, _ = u._shared_component_with
                         self._wave_register_signals(u, m, subScope, empty_hiearchy_containers)

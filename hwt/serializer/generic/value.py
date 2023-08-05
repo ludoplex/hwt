@@ -88,60 +88,54 @@ class ToHdlAst_Value():
 
     def as_hdl_SignalItem(self, si: Union[SignalItem, HdlIdDef],
                           declaration=False):
-        if declaration:
-            if isinstance(si, HdlIdDef):
-                var = copy(si)
-                si = si.origin
-            else:
-                var = HdlIdDef()
-                var.name = si.name
-                var.origin = si
-                var.value = si._val
-                var.type = si._dtype
-                var.is_const = si._const
-            v = var.value
-            if isinstance(si, RtlSignalBase):
-                if si.virtual_only:
-                    var.is_latched = True
-                elif si.drivers or var.direction != HdlDirection.UNKNOWN:
-                    # has drivers or is port/param
-                    pass
-                elif si.endpoints:
-                    if not v.vld_mask:
-                        raise SerializerException(
-                            f"Signal {si.name:s} is constant and has undefined value")
-                    var.is_const = True
-                else:
-                    raise SerializerException(
-                        f"Signal {si.name:s} should be declared but it is not used")
-
-            if v is None:
-                pass
-            elif isinstance(v, RtlSignalBase):
-                if v._const:
-                    var.value = self.as_hdl(v)
-                else:
-                    # default value has to be set by reset,
-                    # because it is not resolvable in compile time
-                    var.value = None
-                    pass
-            elif isinstance(v, HValue):
-                if v.vld_mask or var.is_const:
-                    orig_const_cache = self.constCache
-                    try:
-                        self.constCache = None
-                        var.value = self.as_hdl_Value(v)
-                    finally:
-                        self.constCache = orig_const_cache
-                else:
-                    # remove value if it is entirely undefined
-                    var.value = None
-            else:
-                raise NotImplementedError(v)
-            var.type = self.as_hdl_HdlType(var.type)
-            return var
+        if not declaration:
+            return (
+                self.as_hdl(si.origin)
+                if si.hidden and si.origin is not None
+                else HdlValueId(si.name, obj=si)
+            )
+        if isinstance(si, HdlIdDef):
+            var = copy(si)
+            si = si.origin
         else:
-            if si.hidden and si.origin is not None:
-                # hidden signal, render it's driver instead
-                return self.as_hdl(si.origin)
-            return HdlValueId(si.name, obj=si)
+            var = HdlIdDef()
+            var.name = si.name
+            var.origin = si
+            var.value = si._val
+            var.type = si._dtype
+            var.is_const = si._const
+        v = var.value
+        if isinstance(si, RtlSignalBase):
+            if si.virtual_only:
+                var.is_latched = True
+            elif si.drivers or var.direction != HdlDirection.UNKNOWN:
+                # has drivers or is port/param
+                pass
+            elif si.endpoints:
+                if not v.vld_mask:
+                    raise SerializerException(
+                        f"Signal {si.name:s} is constant and has undefined value")
+                var.is_const = True
+            else:
+                raise SerializerException(
+                    f"Signal {si.name:s} should be declared but it is not used")
+
+        if v is None:
+            pass
+        elif isinstance(v, RtlSignalBase):
+            var.value = self.as_hdl(v) if v._const else None
+        elif isinstance(v, HValue):
+            if v.vld_mask or var.is_const:
+                orig_const_cache = self.constCache
+                try:
+                    self.constCache = None
+                    var.value = self.as_hdl_Value(v)
+                finally:
+                    self.constCache = orig_const_cache
+            else:
+                # remove value if it is entirely undefined
+                var.value = None
+        else:
+            raise NotImplementedError(v)
+        var.type = self.as_hdl_HdlType(var.type)
+        return var

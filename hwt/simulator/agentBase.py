@@ -27,10 +27,9 @@ class AgentWitReset(pcAgentWitReset):
     def notReset(self):
         if self.rst is None:
             return True
-        else:
-            rstVal = self.rst.read()
-            rstVal = int(rstVal)
-            return rstVal == self.rstOffIn
+        rstVal = self.rst.read()
+        rstVal = int(rstVal)
+        return rstVal == self.rstOffIn
 
 
 class SyncAgentBase(AgentWitReset, pcSyncAgentBase):

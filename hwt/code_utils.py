@@ -18,11 +18,7 @@ def rename_signal(unit_instance: "Unit",
         this means that the assigning to a new signal does not drive a original signal
     """
 
-    if isinstance(sig, (int, bool)):
-        t = BIT
-    else:
-        t = sig._dtype
-
+    t = BIT if isinstance(sig, (int, bool)) else sig._dtype
     if isinstance(sig, (HValue, int, bool)):
         s = unit_instance._sig(name, t, def_val=sig, nop_val=sig)
     else:
@@ -63,20 +59,13 @@ def _connect_optional(src: InterfaceBase, dst: InterfaceBase, check_fn, dir_reve
             # if the interfaces does not have subinterface of same name
             continue
 
-        if _d._masterDir == DIRECTION.IN:
-            rev = not dir_reverse
-        else:
-            rev = dir_reverse
-
+        rev = not dir_reverse if _d._masterDir == DIRECTION.IN else dir_reverse
         yield from _connect_optional(_s, _d, check_fn, rev)
 
 
 @internal
 def _intfToSig(obj):
-    if isinstance(obj, InterfaceBase):
-        return obj._sig
-    else:
-        return obj
+    return obj._sig if isinstance(obj, InterfaceBase) else obj
 
 
 @internal
@@ -99,10 +88,7 @@ def _mkOp(fn):
             operands = map(key, operands)
 
         for s in operands:
-            if top is None:
-                top = s
-            else:
-                top = fn(top, s)
+            top = s if top is None else fn(top, s)
         return top
 
     return op

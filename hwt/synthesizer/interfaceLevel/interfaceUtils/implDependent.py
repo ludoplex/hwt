@@ -32,10 +32,7 @@ class InterfaceceImplDependentFns():
         p = self._parent
         assert p is not None
 
-        if isinstance(p, UnitBase):
-            return getRst(p)
-        else:
-            return p._getAssociatedRst()
+        return getRst(p) if isinstance(p, UnitBase) else p._getAssociatedRst()
 
     def _getAssociatedClk(self):
         """
@@ -50,10 +47,7 @@ class InterfaceceImplDependentFns():
         p = self._parent
         assert p is not None
 
-        if isinstance(p, UnitBase):
-            return getClk(p)
-        else:
-            return p._getAssociatedClk()
+        return getClk(p) if isinstance(p, UnitBase) else p._getAssociatedClk()
 
     def __copy__(self):
         """

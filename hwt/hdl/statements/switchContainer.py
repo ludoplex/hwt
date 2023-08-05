@@ -192,12 +192,7 @@ class SwitchContainer(HdlStatement):
             return
 
         for s in outputs:
-            enclosed = True
-            for e in case_enclosures:
-                if s not in e:
-                    enclosed = False
-                    break
-
+            enclosed = all(s in e for e in case_enclosures)
             if enclosed and (not self.default or s in self._default_enclosed_for):
                 enclosure.add(s)
 
@@ -225,12 +220,12 @@ class SwitchContainer(HdlStatement):
         """
         :see: :meth:`hwt.hdl.statements.statement.HdlStatement._fill_enclosure`
         """
-        select = []
         outputs = self._outputs
-        for e in sorted(enclosure.keys(), key=RtlSignal_sort_key):
-            if e in outputs:
-                select.append(e)
-
+        select = [
+            e
+            for e in sorted(enclosure.keys(), key=RtlSignal_sort_key)
+            if e in outputs
+        ]
         for (_, stms), e in zip(self.cases, self._case_enclosed_for):
             fill_stm_list_with_enclosure(self, e, stms, select, enclosure)
             e.update(select)
@@ -280,11 +275,10 @@ class SwitchContainer(HdlStatement):
                 is_mergable_statement_list(self.default, other.default)):
             return False
 
-        for (vA, caseA), (vB, caseB) in zip(self.cases, other.cases):
-            if vA != vB or not is_mergable_statement_list(caseA, caseB):
-                return False
-
-        return True
+        return not any(
+            vA != vB or not is_mergable_statement_list(caseA, caseB)
+            for (vA, caseA), (vB, caseB) in zip(self.cases, other.cases)
+        )
 
     @internal
     def _merge_with_other_stm(self, other: "SwitchContainer") -> None:
@@ -292,10 +286,10 @@ class SwitchContainer(HdlStatement):
         :see: :meth:`hwt.hdl.statements.statement.HdlStatement._merge_with_other_stm`
         """
         merge = HdlStatement_merge_statement_lists
-        newCases = []
-        for (c, caseA), (_, caseB) in zip(self.cases, other.cases):
-            newCases.append((c, merge(caseA, caseB)))
-
+        newCases = [
+            (c, merge(caseA, caseB))
+            for (c, caseA), (_, caseB) in zip(self.cases, other.cases)
+        ]
         self.cases = newCases
         other.cases = None
         self.default = merge(self.default, other.default)
@@ -374,10 +368,7 @@ class SwitchContainer(HdlStatement):
                 True) and (self.default is None
                            or len(self.default) == stmCnt):
             stms = list(self._iter_stms())
-            if statementsAreSame(stms):
-                return False
-            else:
-                return True
+            return not statementsAreSame(stms)
         return True
 
     @internal
@@ -440,12 +431,11 @@ class SwitchContainer(HdlStatement):
             return False
 
         if isinstance(other, SwitchContainer) \
-                and isSameHVal(self.switchOn, other.switchOn)\
-                and len(self.cases) == len(other.cases)\
-                and isSameStatementList(self.default, other.default):
-            for (ac, astm), (bc, bstm) in zip(self.cases, other.cases):
-                if not isSameHVal(ac, bc)\
-                        or not isSameStatementList(astm, bstm):
-                    return False
-            return True
+                    and isSameHVal(self.switchOn, other.switchOn)\
+                    and len(self.cases) == len(other.cases)\
+                    and isSameStatementList(self.default, other.default):
+            return not any(
+                not isSameHVal(ac, bc) or not isSameStatementList(astm, bstm)
+                for (ac, astm), (bc, bstm) in zip(self.cases, other.cases)
+            )
         return False

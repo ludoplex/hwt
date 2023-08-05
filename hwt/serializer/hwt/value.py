@@ -45,49 +45,29 @@ class ToHdlAstHwt_value(ToHdlAst_Value):
         return hdl_call(c, args)
 
     def as_hdl_SignalItem(self, si: Union[SignalItem, HdlIdDef], declaration=False):
-        if declaration:
-            if isinstance(si, HdlIdDef):
-                new_si = copy(si)
-                new_si.type = self.as_hdl_HdlType(si.type)
-                if si.value is not None:
-                    new_si.value = self.as_hdl_Value(si.value)
-                return new_si
-            else:
-                raise NotImplementedError()
-        else:
+        if not declaration:
             # if isinstance(si, SignalItem) and si._const:
             #    # to allow const cache to extract constants
             #    return self.as_hdl_Value(si._val)
-            if si.hidden and si.origin is not None:
-                return self.as_hdl(si.origin)
-            else:
-                return HdlValueId(si.name, obj=si)
+            return (
+                self.as_hdl(si.origin)
+                if si.hidden and si.origin is not None
+                else HdlValueId(si.name, obj=si)
+            )
+        if isinstance(si, HdlIdDef):
+            new_si = copy(si)
+            new_si.type = self.as_hdl_HdlType(si.type)
+            if si.value is not None:
+                new_si.value = self.as_hdl_Value(si.value)
+            return new_si
+        else:
+            raise NotImplementedError()
 
     def as_hdl_DictVal(self, val):
         return ToHdlAstSimModel_value.as_hdl_DictVal(self, val)
 
     def as_hdl_HArrayVal(self, val: HArrayVal):
-        if not val.vld_mask:
-            return self.NONE
-        # else:
-        #    if len(val.val) == val._dtype.size:
-        #        allValuesSame = True
-        #        values = iter(val.val.values())
-        #        reference = next(values)
-        #         for v in values:
-        #             if allValuesSame:
-        #                 allValuesSame = isSameHVal(reference, v)
-        #             else:
-        #                 break
-        #        if allValuesSame:
-        #            # all values of items in array are same, use generator
-        #            # exression
-        #            raise NotImplementedError()
-        #            return "[%s for _ in range(%d)]" % (self.Value(reference))
-
-        # if value can not be simplified it is required to serialize it item
-        # by item
-        return self.as_hdl_DictVal(val.val)
+        return self.NONE if not val.vld_mask else self.as_hdl_DictVal(val.val)
 
     def as_hdl_HSliceVal(self, val: HSliceVal):
         if val._is_full_valid():
@@ -98,11 +78,6 @@ class ToHdlAstHwt_value(ToHdlAst_Value):
                 ])
         else:
             raise NotImplementedError()
-            return "HSliceVal(slice(%s, %s, %s), SLICE, %d)" % (
-                self.as_hdl_Value(val.val.start),
-                self.as_hdl_Value(val.val.stop),
-                self.as_hdl_Value(val.val.step),
-                val.vld_mask)
 
     def as_hdl_HEnumVal(self, val: HEnumVal):
         try:
@@ -113,16 +88,15 @@ class ToHdlAstHwt_value(ToHdlAst_Value):
             else:
                 raise
 
-        if val.vld_mask:
-            try:
-                name = self.name_scope.get_object_name(val)
-            except ObjectForNameNotFound:
-                if self.debug:
-                    name = val.val
-                else:
-                    raise
-
-            return hdl_getattr(HdlValueId(t_name, obj=val._dtype), name)
-        else:
+        if not val.vld_mask:
             return hdl_call(hdl_getattr(HdlValueId(t_name, obj=val._dtype), "from_py"),
                             [None, ])
+        try:
+            name = self.name_scope.get_object_name(val)
+        except ObjectForNameNotFound:
+            if self.debug:
+                name = val.val
+            else:
+                raise
+
+        return hdl_getattr(HdlValueId(t_name, obj=val._dtype), name)

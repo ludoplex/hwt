@@ -358,11 +358,7 @@ class FrameTmpl(object):
             for tPart in transParts:
                 high, low = tPart.getBusWordBitRange()
                 fhigh, flow = tPart.getFieldBitRange()
-                if not tPart.isPadding:
-                    val = fieldToVal.get(tPart.tmpl.origin, None)
-                else:
-                    val = None
-
+                val = fieldToVal.get(tPart.tmpl.origin, None) if not tPart.isPadding else None
                 if val is None:
                     newBits = 0
                     vld = 0
@@ -373,9 +369,7 @@ class FrameTmpl(object):
                 actualVal = set_bit_range(actualVal, low, high - low, newBits)
                 actualVldMask = set_bit_range(actualVldMask, low, high - low, vld)
 
-            v = typeOfWord.getValueCls()(typeOfWord, actualVal,
-                                         actualVldMask)
-            yield v
+            yield typeOfWord.getValueCls()(typeOfWord, actualVal, actualVldMask)
 
     @internal
     def __repr__getName(self, transPart: TransPart, fieldWidth: int):
@@ -384,19 +378,17 @@ class FrameTmpl(object):
         """
         if transPart.isPadding:
             return "X" * fieldWidth
-        else:
-            path = transPart.tmpl.getFieldPath()
-            names = []
-            for p in path:
-                if isinstance(p, int):
-                    names.append(f"[{p:d}]")
-                else:
-                    if names:
-                        names.append(f".{p:s}")
-                    else:
-                        names.append(p)
+        path = transPart.tmpl.getFieldPath()
+        names = []
+        for p in path:
+            if isinstance(p, int):
+                names.append(f"[{p:d}]")
+            elif names:
+                names.append(f".{p:s}")
+            else:
+                names.append(p)
 
-            return "".join(names)
+        return "".join(names)
 
     @internal
     def __repr__word(self,
@@ -408,14 +400,13 @@ class FrameTmpl(object):
         DW = self.wordWidth
         partsWithChoice = []
 
-        endAlignment = transParts[-1].endOfPart % DW
-        if endAlignment:
+        if endAlignment := transParts[-1].endOfPart % DW:
             # -1 for ending |
             percentOfWidth = (DW - endAlignment) / DW
             # -1 for ending |
             fieldWidth = max(0, int(percentOfWidth * width) - 1)
             assert fieldWidth >= 0
-            s = '%s|' % ("^" * fieldWidth)
+            s = f'{"^" * fieldWidth}|'
             buff.append(s)
 
         for tp in reversed(transParts):
@@ -435,21 +426,20 @@ class FrameTmpl(object):
         return ("".join(buff), partsWithChoice)
 
     def __repr__(self, scale=1):
-        buff = []
         s = f"<{self.__class__.__name__:s} start:{self.startBitAddr:d}, end:{self.endBitAddr:d}"
-        buff.append(s)
-
         padding = 5
         DW = self.wordWidth
         width = int(DW * scale)
 
-        buff.append(
-            '{0: <{padding}}{1: <{halfLineWidth}}{2: >{halfLineWidth}}'.format(
-                "", DW - 1, 0, padding=padding, halfLineWidth=width // 2))
         line = '{0: <{padding}}{1:-<{lineWidth}}'.format(
             "", "", padding=padding, lineWidth=width + 1)
-        buff.append(line)
-
+        buff = [
+            s,
+            '{0: <{padding}}{1: <{halfLineWidth}}{2: >{halfLineWidth}}'.format(
+                "", DW - 1, 0, padding=padding, halfLineWidth=width // 2
+            ),
+            line,
+        ]
         for w, transParts in self.walkWords(showPadding=True):
             wStr, partsWithChoice = self.__repr__word(
                 w, width, padding, transParts)
@@ -462,6 +452,5 @@ class FrameTmpl(object):
                     buff.append(wStr)
                 partsWithChoice = _partsWithChoice
 
-        buff.append(line)
-        buff.append(">")
+        buff.extend((line, ">"))
         return "\n".join(buff)

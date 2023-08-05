@@ -24,9 +24,7 @@ def HdlType_select(t: HStruct, fieldsToUse: filed_filter_t):
         will select field1 and 2 from struct1 and field3 from root)
     """
 
-    template = []
     fieldsToUse = fieldsToUse
-    foundNames = set()
     if isinstance(t, (HArray, HStream)):
         assert len(fieldsToUse) <= 1, ("select only on item 0, because it has to be same for all array items", fieldsToUse)
         k, v = list(fieldsToUse.items())[0]
@@ -38,35 +36,36 @@ def HdlType_select(t: HStruct, fieldsToUse: filed_filter_t):
         # scalar
         return t
     else:
+        template = []
+        foundNames = set()
         # struct/Union
         for f in t.fields:
             name = None
             subfields = []
-    
+
             if f.name is not None:
                 try:
                     if isinstance(fieldsToUse, dict):
                         subfields = fieldsToUse[f.name]
                         name = f.name
-                    else:
-                        if f.name in fieldsToUse:
-                            name = f.name
+                    elif f.name in fieldsToUse:
+                        name = f.name
                 except KeyError:
                     name = None
-    
+
             if name is not None and subfields:
                 new_t = HdlType_select(f.dtype, subfields)
                 template.append(HStructField(new_t, name))
             else:
                 template.append(HStructField(f.dtype, name))
-    
+
             if f.name is not None:
                 foundNames.add(f.name)
-    
+
         if isinstance(fieldsToUse, dict):
             fieldsToUse = set(fieldsToUse.keys())
         assert fieldsToUse.issubset(foundNames)
-    
+
         return t.__class__(*template)
 
 

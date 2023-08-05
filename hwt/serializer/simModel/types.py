@@ -18,9 +18,7 @@ class ToHdlAstSimModel_types():
     def as_hdl_HdlType_bits(self, typ: Bits, declaration=False):
         assert not declaration
         w = typ.bit_length()
-        if isinstance(w, int):
-            pass
-        else:
+        if not isinstance(w, int):
             w = int(w)
 
         return hdl_call(self.BITS3T, [HdlValueInt(w, None, None),
@@ -35,13 +33,11 @@ class ToHdlAstSimModel_types():
     def as_hdl_HdlType_array(self, typ, declaration=False):
         if declaration:
             return super(ToHdlAstSimModel_types, self).as_hdl_HdlType_array(typ, declaration=declaration)
-        else:
-            t_name = self.name_scope.get_object_name(typ)
-            return hdl_getattr(self.SELF, t_name)
+        t_name = self.name_scope.get_object_name(typ)
+        return hdl_getattr(self.SELF, t_name)
 
     def as_hdl_HdlType_enum(self, typ, declaration=False):
         if declaration:
             return super(ToHdlAstSimModel_types, self).as_hdl_HdlType_enum(typ, declaration=True)
-        else:
-            t_name = self.name_scope.get_object_name(typ)
-            return hdl_getattr(self.SELF, t_name)
+        t_name = self.name_scope.get_object_name(typ)
+        return hdl_getattr(self.SELF, t_name)

@@ -13,10 +13,7 @@ def slice_member_to_hval(v):
         assert isinstance(v._dtype, Bits)
         return v
     elif isinstance(v, HValue):
-        if isinstance(v, BitsVal):
-            return v
-        else:
-            return v._auto_cast(INT)
+        return v if isinstance(v, BitsVal) else v._auto_cast(INT)
     else:
         return INT.from_py(v)
 

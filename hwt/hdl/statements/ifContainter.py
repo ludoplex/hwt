@@ -148,7 +148,7 @@ class IfContainer(HdlStatement):
 
         assert not all_cut_off, "everything was cut of but this should be already known at the start"
 
-        if newIfTrue or newIfFalse or anyElifHit or newIfFalse:
+        if newIfTrue or newIfFalse or anyElifHit:
             # parts were cut off
             # generate new statement for them
             cond_sig = self.cond
@@ -188,13 +188,7 @@ class IfContainer(HdlStatement):
         encl = self._enclosed_for = set()
 
         for s in self._ifTrue_enclosed_for:
-            enclosed = True
-
-            for elif_e in elif_encls:
-                if s not in elif_e:
-                    enclosed = False
-                    break
-
+            enclosed = all(s in elif_e for elif_e in elif_encls)
             if enclosed and s in self._ifFalse_enclosed_for:
                 encl.add(s)
 
@@ -242,12 +236,12 @@ class IfContainer(HdlStatement):
         """
         :see: :meth:`hwt.hdl.statements.statement.HdlStatement._fill_enclosure`
         """
-        enc = []
         outputs = self._outputs
-        for e in sorted(enclosure.keys(), key=RtlSignal_sort_key):
-            if e in outputs and e not in self._enclosed_for:
-                enc.append(e)
-
+        enc = [
+            e
+            for e in sorted(enclosure.keys(), key=RtlSignal_sort_key)
+            if e in outputs and e not in self._enclosed_for
+        ]
         if not enc:
             return
         fill_stm_list_with_enclosure(self, self._ifTrue_enclosed_for,
@@ -319,11 +313,7 @@ class IfContainer(HdlStatement):
         reduce_self = not self._condHasEffect(
             self.ifTrue, self.ifFalse, self.elIfs)
 
-        if reduce_self:
-            res = self.ifTrue
-        else:
-            res = ListOfHdlStatement((self,))
-
+        res = self.ifTrue if reduce_self else ListOfHdlStatement((self,))
         self._on_reduce(reduce_self, io_change, res)
 
         # try merge nested ifs as elifs
@@ -374,9 +364,10 @@ class IfContainer(HdlStatement):
         merge = HdlStatement_merge_statement_lists
         self.ifTrue = merge(self.ifTrue, other.ifTrue)
 
-        new_elifs = []
-        for ((c, elifA), (_, elifB)) in zip(self.elIfs, other.elIfs):
-            new_elifs.append((c, merge(elifA, elifB)))
+        new_elifs = [
+            (c, merge(elifA, elifB))
+            for (c, elifA), (_, elifB) in zip(self.elIfs, other.elIfs)
+        ]
         self.elIfs = new_elifs
 
         self.ifFalse = merge(self.ifFalse, other.ifFalse)
@@ -393,15 +384,15 @@ class IfContainer(HdlStatement):
         stmCnt = len(ifTrue)
         # [TODO] condition in empty if stm
         if ifFalse is not None \
-                and stmCnt == len(ifFalse) \
-                and reduce(and_,
+                    and stmCnt == len(ifFalse) \
+                    and reduce(and_,
                            [len(stm) == stmCnt
                             for _, stm in elIfs],
                            True):
-            for stms in zip(ifTrue, ifFalse, *map(lambda x: x[1], elIfs)):
-                if not statementsAreSame(stms):
-                    return True
-            return False
+            return any(
+                not statementsAreSame(stms)
+                for stms in zip(ifTrue, ifFalse, *map(lambda x: x[1], elIfs))
+            )
         return True
 
     def isSame(self, other: HdlStatement) -> bool:
@@ -415,22 +406,22 @@ class IfContainer(HdlStatement):
             return False
 
         if isinstance(other, IfContainer):
-            if self.cond is other.cond:
-                if len(self.ifTrue) == len(other.ifTrue) \
-                        and ((self.ifFalse is None and other.ifFalse is None) or
+            if len(self.ifTrue) == len(other.ifTrue) \
+                            and ((self.ifFalse is None and other.ifFalse is None) or
                              len(self.ifFalse) == len(other.ifFalse)) \
-                        and len(self.elIfs) == len(other.elIfs):
-                    if not isSameStatementList(self.ifTrue,
-                                               other.ifTrue) \
-                            or not isSameStatementList(self.ifFalse,
-                                                       other.ifFalse):
-                        return False
-                    for (ac, astms), (bc, bstms) in zip(self.elIfs,
-                                                        other.elIfs):
-                        if not (ac == bc) or\
-                                not isSameStatementList(astms, bstms):
-                            return False
-                    return True
+                            and len(self.elIfs) == len(other.elIfs):
+                if self.cond is other.cond:
+                    return (
+                        False
+                        if not isSameStatementList(self.ifTrue, other.ifTrue)
+                        or not isSameStatementList(self.ifFalse, other.ifFalse)
+                        else not any(
+                            ac != bc or not isSameStatementList(astms, bstms)
+                            for (ac, astms), (bc, bstms) in zip(
+                                self.elIfs, other.elIfs
+                            )
+                        )
+                    )
         return False
     
     @internal

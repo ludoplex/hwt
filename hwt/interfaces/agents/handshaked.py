@@ -67,12 +67,13 @@ class UniversalHandshakedAgent(HandshakedAgent):
     def __init__(self, sim: HdlSimulator, intf: "Handshaked", allowNoReset=False):
         HandshakedAgent.__init__(self, sim, intf, allowNoReset=allowNoReset)
 
-        signals = []
         rd = self.get_ready_signal(intf)
         vld = self.get_valid_signal(intf)
-        for i in intf._interfaces:
-            if i._sigInside is not rd and i._sigInside is not vld:
-                signals.append(i)
+        signals = [
+            i
+            for i in intf._interfaces
+            if i._sigInside is not rd and i._sigInside is not vld
+        ]
         self._signals = tuple(signals)
         self._sigCnt = len(signals)
 
@@ -86,20 +87,19 @@ class UniversalHandshakedAgent(HandshakedAgent):
         if data is None:
             for sig in self._signals:
                 sig.write(None)
+        elif self._sigCnt == 1:
+            self._signals[0].write(data)
         else:
-            if self._sigCnt == 1:
-                self._signals[0].write(data)
-            else:
-                assert len(data) == self._sigCnt, (
-                    "invalid number of data for an interface",
-                    len(data),
-                    self._signals,
-                    self.intf._getFullName())
-                for sig, val in zip(self._signals, data):
-                    try:
-                        sig.write(val)
-                    except:
-                        raise ValueError("Error while writing ", val, "to ", sig)
+            assert len(data) == self._sigCnt, (
+                "invalid number of data for an interface",
+                len(data),
+                self._signals,
+                self.intf._getFullName())
+            for sig, val in zip(self._signals, data):
+                try:
+                    sig.write(val)
+                except:
+                    raise ValueError("Error while writing ", val, "to ", sig)
 
 class HandshakeSyncAgent(HandshakedAgent):
     """

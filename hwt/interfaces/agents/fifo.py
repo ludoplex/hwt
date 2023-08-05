@@ -92,9 +92,8 @@ class FifoReaderAgent(SyncAgentBase):
 
                 if wait is wait_last:
                     break
-                else:
-                    wait_last = wait
-                    yield WaitWriteOnly()
+                wait_last = wait
+                yield WaitWriteOnly()
 
             rd = not wait
         else:
@@ -138,11 +137,7 @@ class FifoReaderAgent(SyncAgentBase):
         yield WaitCombRead()
         rst_n = self.notReset()
         # speculative write
-        if rst_n and self.data:
-            wait = 0
-        else:
-            wait = 1
-
+        wait = 0 if rst_n and self.data else 1
         yield WaitWriteOnly()
         intf.wait.write(wait)
 

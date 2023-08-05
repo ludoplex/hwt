@@ -53,25 +53,24 @@ class ToHdlAstVhdl2008_types():
             ])])
 
     def as_hdl_HdlType_array(self, typ: HArray, declaration=False):
-        if declaration:
-            v = HdlIdDef()
-            name = getattr(typ, "name", None)
-            if name is None:
-                name = "arr_t_"
-            v.name = self.name_scope.checked_name(name, typ)
-            v.type = HdlTypeType
-            v.origin = typ
-            size = hdl_downto(
-                self.as_hdl_int(int(typ.size) - 1),
-                self.as_hdl_int(0)
-            )
-            if self.does_type_requires_extra_def(typ.element_t, ()):
-                raise NotImplementedError(typ.element_t)
-            e_t = self.as_hdl_HdlType(typ.element_t, declaration=False)
-            v.value = hdl_index(e_t, size)
-            return v
-        else:
+        if not declaration:
             return super(ToHdlAstVhdl2008_types, self).as_hdl_HdlType_array(typ, declaration)
+        v = HdlIdDef()
+        name = getattr(typ, "name", None)
+        if name is None:
+            name = "arr_t_"
+        v.name = self.name_scope.checked_name(name, typ)
+        v.type = HdlTypeType
+        v.origin = typ
+        size = hdl_downto(
+            self.as_hdl_int(int(typ.size) - 1),
+            self.as_hdl_int(0)
+        )
+        if self.does_type_requires_extra_def(typ.element_t, ()):
+            raise NotImplementedError(typ.element_t)
+        e_t = self.as_hdl_HdlType(typ.element_t, declaration=False)
+        v.value = hdl_index(e_t, size)
+        return v
 
     def as_hdl_HdlType_float(self, typ: HFloat, declaration=False):
         if typ == FLOAT64:

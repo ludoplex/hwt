@@ -20,8 +20,7 @@ from hwt.doc_markers import internal
 
 @internal
 def freeze_dict(data):
-    keys = sorted(data.keys())
-    if keys:
+    if keys := sorted(data.keys()):
         frozen_type = namedtuple(''.join(keys), keys)
     else:
         return tuple()
@@ -71,14 +70,10 @@ def _serializeExclude_eval(parentUnit, priv):
     :return: tuple (do serialize this object, next priv, replacement unit)
     """
 
-    # do not use this :class:`hwt.synthesizer.unit.Unit` instance and do not use any prelacement
-    # (usefull when the :class:`hwt.synthesizer.unit.Unit` instance is a placeholder for something
-    #  which already exists in hdl word)
-    if priv is None:
-        priv = parentUnit
-        return False, priv, None
-    else:
+    if priv is not None:
         return False, priv, priv
+    priv = parentUnit
+    return False, priv, None
 
 
 @internal

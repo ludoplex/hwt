@@ -131,14 +131,13 @@ def HTypeFromIntfMap(interfaceMap: IntfMap) -> HStruct:
 def isPaddingInIntfMap(item):
     if isinstance(item, HdlType):
         return True
-    else:
-        try:
-            if isinstance(item, tuple):
-                _item, name = item
-                if name is None:
-                    return True
-        except ValueError:
-            pass
+    try:
+        if isinstance(item, tuple):
+            _item, name = item
+            if name is None:
+                return True
+    except ValueError:
+        pass
 
     return False
 
@@ -190,9 +189,8 @@ def walkStructIntfAndIntfMap(structIntf: Union[HObjList, StructIntf, UnionSink, 
         if item is None:
             # is padding or there is no interface specified for it in intfMap
             return
-        else:
-            structIntf, item = item
-            yield from walkStructIntfAndIntfMap(structIntf, item)
+        structIntf, item = item
+        yield from walkStructIntfAndIntfMap(structIntf, item)
     elif isinstance(structIntf, list):
         structIntf
         assert len(structIntf) == len(intfMap)
@@ -211,13 +209,17 @@ def IntfMapItem_find_by_name(intf_map_item, name):
         intf_map_item = intf_map_item.dtype
     if isinstance(intf_map_item, IntfMap):
         for x in intf_map_item:
-            if isinstance(x, InterfaceBase):
-                if x._name == name:
-                    return x
-            elif isinstance(x, RtlSignalBase):
-                if x.name == name:
-                    return x
-            else:
+            if (
+                isinstance(x, InterfaceBase)
+                and x._name == name
+                or not isinstance(x, InterfaceBase)
+                and isinstance(x, RtlSignalBase)
+                and x.name == name
+            ):
+                return x
+            elif not isinstance(x, InterfaceBase) and not isinstance(
+                x, RtlSignalBase
+            ):
                 v, n = x
                 if n == name:
                     return v

@@ -54,19 +54,17 @@ def construct_tmp_dst_sig_for_slice(dst: RtlSignal,
         if is_signal_needed:
             dst = dst[i]
             if isinstance(i, HSliceVal):
-                if int(i.val.step) == -1:
-                    stop = int(i.val.stop)
-                    start = int(i.val.start)
-                    name = f"{name}_{start - 1:d}downto{stop:d}"
-                else:
+                if int(i.val.step) != -1:
                     raise NotImplementedError(i.val.step)
+                stop = int(i.val.stop)
+                start = int(i.val.start)
+                name = f"{name}_{start - 1:d}downto{stop:d}"
             else:
                 _i = int(i)
                 name = f"{name:s}_{_i:d}"
 
     if is_signal_needed:
-        tmp_sig = dst.ctx.sig(name, dst._dtype, def_val=def_val, nop_val=nop_val)
-        return tmp_sig
+        return dst.ctx.sig(name, dst._dtype, def_val=def_val, nop_val=nop_val)
     elif src is not None:
         return src
     elif nop_val is not NOT_SPECIFIED:
@@ -152,8 +150,7 @@ class RtlNetlistPassExtractPartDrivers():
     @classmethod
     def find_all_independent_slice_drivers(cls, statements: Sequence[HdlStatement]):
         for stm in sorted(statements, key=HdlStatement_sort_key):
-            for s, indexes, can_directly_replace_with_src_expr, src in cls.find_independent_slice_drivers(stm):
-                yield s, indexes, can_directly_replace_with_src_expr, src
+            yield from cls.find_independent_slice_drivers(stm)
 
     @classmethod
     def _collect_indexes_on_variables(cls, statements: Sequence[HdlStatement]):
@@ -184,14 +181,12 @@ class RtlNetlistPassExtractPartDrivers():
                 if isinstance(i, BitsVal):
                     low = int(i)
                     high = low + 1
-                    index_key = ((high, low),)
                 else:
                     assert isinstance(i, HSliceVal), (s, i)
                     if i.val.step != -1:
                         raise NotImplementedError(s, i)
                     high, low = int(i.val.start), int(i.val.stop)
-                    index_key = ((high, low),)
-
+                index_key = ((high, low),)
                 while split_p < low:
                     # some parts at the beginning are skipped
                     # that means that that part is not driven by anything
@@ -264,11 +259,7 @@ class RtlNetlistPassExtractPartDrivers():
                         else:
                             assert sp_i == split_i + 1, (s, sp_i, split_i)
                             # get actual input signal
-                            if src is None:
-                                _src = None
-                            else:
-                                _src = src[sp - dst_offset:prev_sp - dst_offset]
-
+                            _src = None if src is None else src[sp - dst_offset:prev_sp - dst_offset]
                             part_indexes = (SLICE.from_py(slice(sp, prev_sp, -1)),)
                             _src = construct_tmp_dst_sig_for_slice(s, part_indexes, _src, True)
 
@@ -316,11 +307,7 @@ class RtlNetlistPassExtractPartDrivers():
                 indexes = _format_indexes(stm.indexes)
                 new_dsts, do_remove_stm = parts[indexes]
             else:
-                # collect only parts which do not have sub parts (are primitive parts)
-                new_dsts = []
-                for k, d in parts.items():
-                    if not isinstance(d, list):
-                        new_dsts.append(k)
+                new_dsts = [k for k, d in parts.items() if not isinstance(d, list)]
                 new_dsts.sort()
                 do_remove_stm = False
 

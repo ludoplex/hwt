@@ -95,14 +95,12 @@ class HUnionMemberHandler(object):
     def get(self, parent):
         name = self.field.name
         v = parent._val
-        if parent._usedField.name == name:
-            return v
-        else:
+        if parent._usedField.name != name:
             f = parent._dtype.fields[name]
             v = v._reinterpret_cast(f.dtype)
             parent._val = v
             parent._usedField = f
-            return v
+        return v
 
 
 class HUnion(HdlType):
@@ -124,21 +122,19 @@ class HUnion(HdlType):
         super(HUnion, self).__init__(const=const)
         self.fields = OrderedDict()
         self.field_by_name = self.fields
-        self.name = name
         bit_length = None
 
         class UnionVal(UnionValBase):
             pass
 
+        self.name = name
         for f in template:
             try:
                 field = HStructField(*f)
             except TypeError:
                 field = f
             if not isinstance(field, HStructField):
-                raise TypeError(
-                    "Template for struct field %s is not"
-                    " in valid format" % repr(f))
+                raise TypeError(f"Template for struct field {repr(f)} is not in valid format")
 
             assert field.name is not None
             self.fields[field.name] = field
@@ -164,7 +160,7 @@ class HUnion(HdlType):
             usedNames), protectedNames.intersection(usedNames)
 
         if name is not None:
-            UnionVal.__name__ = name + "Val"
+            UnionVal.__name__ = f"{name}Val"
 
         self.valueCls = UnionVal
 
@@ -215,11 +211,7 @@ class HUnion(HdlType):
             (used only by HStruct)
         :param expandStructs: expand HStructTypes (used by HStruct and HArray)
         """
-        if self.name:
-            name = self.name + " "
-        else:
-            name = ""
-
+        name = f"{self.name} " if self.name else ""
         myIndent = getIndent(indent)
         childIndent = getIndent(indent + 1)
         header = f"{myIndent:s}union {name:s}{{"

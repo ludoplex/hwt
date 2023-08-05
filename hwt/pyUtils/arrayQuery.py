@@ -49,10 +49,7 @@ def arr_any(iterable, fn):
     """
     :return: True if fn(item) for any item else False
     """
-    for item in iterable:
-        if fn(item):
-            return True
-    return False
+    return any(fn(item) for item in iterable)
 
 
 def arr_all(iterable, fn):
@@ -60,10 +57,7 @@ def arr_all(iterable, fn):
     :return: True if fn(item) for all items in interable or iterable
         is empty else False
     """
-    for item in iterable:
-        if not fn(item):
-            return False
-    return True
+    return all(fn(item) for item in iterable)
 
 
 def take(iterrable, howMay):

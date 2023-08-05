@@ -18,7 +18,7 @@ defaultPyConversions = {
 
 def toHVal(op: Any, suggestedType: Optional[HdlType]=None):
     """Convert python or hdl value/signal object to hdl value/signal object"""
-    if isinstance(op, HValue) or isinstance(op, SignalItem):
+    if isinstance(op, (HValue, SignalItem)):
         return op
     elif isinstance(op, InterfaceBase):
         return op._sig

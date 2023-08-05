@@ -13,9 +13,8 @@ class TypePath(tuple):
     def __truediv__(self, other: Union[int, str, "TypePath"]):
         if isinstance(other, TypePath):
             return TypePath(*self, *other)
-        else:
-            assert isinstance(other, (int, str)), other
-            return TypePath(*self, other)
+        assert isinstance(other, (int, str)), other
+        return TypePath(*self, other)
 
     def __copy__(self):
         return self.__class__(*self)

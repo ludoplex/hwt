@@ -193,7 +193,4 @@ def areHValues(*items):
     """
     :return: True if all arguments are instances of HValue class else False
     """
-    for i in items:
-        if not isinstance(i, HValue):
-            return False
-    return True
+    return all(isinstance(i, HValue) for i in items)

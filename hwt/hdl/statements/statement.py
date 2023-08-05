@@ -53,9 +53,7 @@ class HdlStatement(HdlObject):
         result = cls.__new__(cls)
         memo[id(self)] = result
         for k, v in self.__dict__.items():
-            if v is None:
-                new_v = None
-            elif k in self._DEEPCOPY_SKIP:
+            if v is None or k in self._DEEPCOPY_SKIP:
                 new_v = None
             elif k in self._DEEPCOPY_SHALLOW_ONLY:
                 new_v = copy(v)
@@ -239,7 +237,6 @@ class HdlStatement(HdlObject):
         :return: iterator of sub statements which have specified output as an output
         """
         return
-        yield
 
     @internal
     def _merge_with_other_stm(self, other: "HdlStatement") -> None:
@@ -263,10 +260,10 @@ class HdlStatement(HdlObject):
             of reduce operation on this statement
         """
 
-        parentStm = self.parentStm
         parentStmList = self.parentStmList
-        
+
         if self_reduced:
+            parentStm = self.parentStm
             was_top = parentStm is None
             # update signal drivers/endpoints
             if was_top:
@@ -293,15 +290,13 @@ class HdlStatement(HdlObject):
                     for outp in stm._outputs:
                         if parentStmList is not None:
                             parentStmList._registerOutput(outp, stm)
-        else:
-            # parent has to update it's inputs/outputs
-            if io_changed:
-                if parentStmList is not None:
-                    for o in self._outputs:
-                        parentStmList._unregisterOutput(o, self)
-                self._inputs = UniqList()
-                self._outputs = UniqList()
-                self._collect_io()
+        elif io_changed:
+            if parentStmList is not None:
+                for o in self._outputs:
+                    parentStmList._unregisterOutput(o, self)
+            self._inputs = UniqList()
+            self._outputs = UniqList()
+            self._collect_io()
 
     @internal
     def _on_merge(self, other: "HdlStatement"):

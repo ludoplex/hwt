@@ -43,12 +43,11 @@ def getInterfaceName(top: "Unit", io: Union[InterfaceBase, RtlSignal,
             prefix.append(parent._name)
             parent = parent._parent
         n = io._getFullName()
-        if prefix:
-            prefix.reverse()
-            prefix.append(n)
-            return ".".join(prefix)
-        else:
+        if not prefix:
             return n
+        prefix.reverse()
+        prefix.append(n)
+        return ".".join(prefix)
     elif isinstance(io, tuple):
         return f"({', '.join(getInterfaceName(top, _io) for _io in io)})"
     else:
@@ -157,11 +156,7 @@ def _instantiate_signals(intf: Union[Signal, HObjList, StructIntf],
 
         for elm in intf._interfaces:
             name = elm._name
-            if def_val is None:
-                _def_val = None
-            else:
-                _def_val = def_val.get(name, None)
-
+            _def_val = None if def_val is None else def_val.get(name, None)
             if nop_val is NOT_SPECIFIED:
                 _nop_val = NOT_SPECIFIED
             else:
@@ -231,17 +226,7 @@ class UnitImplHelpers(UnitBase):
         elif rst is None:
             rst = getRst(self)
 
-        if isinstance(dtype, (HStruct, HArray)):
-            container = HdlType_to_Interface().apply(dtype)
-            _loadDeclarations(container, name)
-            _instantiate_signals(
-                container, clk, rst, def_val, NOT_SPECIFIED,
-                lambda name, dtype, clk, rst, def_val, nop_val: self._reg(name, dtype,
-                                                                          def_val=def_val,
-                                                                          clk=clk, rst=rst))
-            container._parent = self
-            return container
-        else:
+        if not isinstance(dtype, (HStruct, HArray)):
             # primitive data type signal
             return self._ctx.sig(
                 name,
@@ -250,6 +235,15 @@ class UnitImplHelpers(UnitBase):
                 syncRst=rst,
                 def_val=def_val
             )
+        container = HdlType_to_Interface().apply(dtype)
+        _loadDeclarations(container, name)
+        _instantiate_signals(
+            container, clk, rst, def_val, NOT_SPECIFIED,
+            lambda name, dtype, clk, rst, def_val, nop_val: self._reg(name, dtype,
+                                                                      def_val=def_val,
+                                                                      clk=clk, rst=rst))
+        container._parent = self
+        return container
 
     def _sig(self, name: str,
              dtype: HdlType=BIT,
@@ -260,12 +254,11 @@ class UnitImplHelpers(UnitBase):
 
         :see: :func:`hwt.synthesizer.rtlLevel.netlist.RtlNetlist.sig`
         """
-        if isinstance(dtype, HStruct):
-            container = HdlType_to_Interface().apply(dtype)
-            return Interface_without_registration(self, container, name, def_val=def_val, nop_val=nop_val)
-        else:
+        if not isinstance(dtype, HStruct):
             # primitive data type signal
             return self._ctx.sig(name, dtype=dtype, def_val=def_val, nop_val=nop_val)
+        container = HdlType_to_Interface().apply(dtype)
+        return Interface_without_registration(self, container, name, def_val=def_val, nop_val=nop_val)
 
     @internal
     def _cleanAsSubunit(self):

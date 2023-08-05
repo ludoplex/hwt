@@ -71,8 +71,8 @@ class XdcSerializer():
         w("}")
 
     def visit_get_clock_of(self, o: get_clock_of):
-        w = self.out.write
         if isinstance(o.obj[-1], RtlSyncSignal):
+            w = self.out.write
             w("get_clocks -of [")
             self._get(o.obj)
             w("]")
@@ -80,11 +80,8 @@ class XdcSerializer():
             raise NotImplementedError()
 
     def visit_iHdlConstrain(self, o):
-        visitFn = getattr(self, "visit_" + o.__class__.__name__, None)
-        if visitFn is None:
-            return o.to_xdc(self, o)
-        else:
-            return visitFn(o)
+        visitFn = getattr(self, f"visit_{o.__class__.__name__}", None)
+        return o.to_xdc(self, o) if visitFn is None else visitFn(o)
 
     def visit_HdlConstraintList(self, o_list):
         return [self.visit_iHdlConstrain(o) for o in o_list]

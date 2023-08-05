@@ -14,12 +14,10 @@ class ToHdlAstVerilog_statements():
         blocking = False
         ver_sig_t = verilogTypeOfSig(a.dst)
         if ver_sig_t in (SIGNAL_TYPE.REG, SIGNAL_TYPE.PORT_REG):
-            evDep = False
-            for driver in a.dst.drivers:
-                if driver._event_dependent_from_branch is not None:
-                    evDep = True
-                    break
-
+            evDep = any(
+                driver._event_dependent_from_branch is not None
+                for driver in a.dst.drivers
+            )
             if not evDep or a.dst.virtual_only:
                 blocking = True
         elif ver_sig_t in (SIGNAL_TYPE.WIRE, SIGNAL_TYPE.PORT_WIRE):
@@ -34,16 +32,14 @@ class ToHdlAstVerilog_statements():
     def can_pop_process_wrap(self, stms, hasToBeVhdlProcess):
         if hasToBeVhdlProcess:
             return False
-        else:
-            assert len(stms) == 1
-            return True
+        assert len(stms) == 1
+        return True
 
     def has_to_be_process(self, proc: HdlStmCodeBlockContainer):
-        for o in proc._outputs:
-            if verilogTypeOfSig(o) in (SIGNAL_TYPE.REG, SIGNAL_TYPE.PORT_REG):
-                return True
-
-        return False
+        return any(
+            verilogTypeOfSig(o) in (SIGNAL_TYPE.REG, SIGNAL_TYPE.PORT_REG)
+            for o in proc._outputs
+        )
 
     def as_hdl_HdlStmCodeBlockContainer(self, proc: HdlStmCodeBlockContainer) -> iHdlStatement:
         p = super(ToHdlAstVerilog_statements,

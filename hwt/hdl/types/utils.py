@@ -24,11 +24,7 @@ def walkFlattenFields(sigOrVal: Union[RtlSignalBase, HValue], skipPadding=True):
         for f in t.fields:
             isPadding = f.name is None
             if not isPadding or not skipPadding:
-                if isPadding:
-                    v = f.dtype.from_py(None)
-                else:
-                    v = getattr(sigOrVal, f.name)
-
+                v = f.dtype.from_py(None) if isPadding else getattr(sigOrVal, f.name)
                 yield from walkFlattenFields(v)
 
     elif isinstance(t, HArray):
@@ -117,10 +113,10 @@ def HValue_from_words(t: HdlType,
 
 def is_only_padding(t: HdlType) -> bool:
     if isinstance(t, HStruct):
-        for f in t.fields:
-            if f.name is not None and not is_only_padding(f.dtype):
-                return False
-        return True
+        return not any(
+            f.name is not None and not is_only_padding(f.dtype)
+            for f in t.fields
+        )
     elif isinstance(t, (HArray, HStream)):
         return is_only_padding(t.element_t)
     return False

@@ -43,10 +43,9 @@ class ToHdlAstVerilog_Value(ToHdlAst_Value):
         return HdlValueInt(i, None, None)
 
     def as_hdl_SignalItem(self, si, declaration=False):
-        if declaration:
-            with SignalTypeSwap(self, verilogTypeOfSig(si)):
-                return ToHdlAst_Value.as_hdl_SignalItem(self, si, declaration=declaration)
-        else:
+        if not declaration:
+            return ToHdlAst_Value.as_hdl_SignalItem(self, si, declaration=declaration)
+        with SignalTypeSwap(self, verilogTypeOfSig(si)):
             return ToHdlAst_Value.as_hdl_SignalItem(self, si, declaration=declaration)
 
     def as_hdl_HSliceVal(self, val: HSliceVal):
@@ -59,10 +58,7 @@ class ToHdlAstVerilog_Value(ToHdlAst_Value):
             return HdlOp(HWT_TO_HDLCONVEROTR_OPS[item.operator],
                            [self.as_hdl(item.operands[0]), ])
         elif anyIsEventDependent:
-            if item._dtype.negated:
-                op = HdlOpType.FALLING
-            else:
-                op = HdlOpType.RISING
+            op = HdlOpType.FALLING if item._dtype.negated else HdlOpType.RISING
             return HdlOp(op, [self.as_hdl(item), ])
 
         return self.as_hdl(item)
@@ -76,7 +72,4 @@ class ToHdlAstVerilog_Value(ToHdlAst_Value):
     @internal
     def as_hdl_BitString(self, v, width, force_vector, vld_mask, signed):
         v = bit_string(v, width, vld_mask=vld_mask)
-        if signed:
-            return hdl_call(self.SIGNED, [v, ])
-        else:
-            return v
+        return hdl_call(self.SIGNED, [v, ]) if signed else v

@@ -147,7 +147,7 @@ class Unit(PropDeclrCollector, UnitImplHelpers):
         if replacement is not None:
             assert not do_serialize_this
             assert len(self._interfaces) == len(replacement._interfaces), \
-                "No lazy loaded interfaces declared in _impl()"
+                    "No lazy loaded interfaces declared in _impl()"
             copy_HdlModuleDec(replacement, self)
             yield False, self
             self._cleanAsSubunit()
@@ -159,7 +159,7 @@ class Unit(PropDeclrCollector, UnitImplHelpers):
                 v: k
                 for k, v in intf_map_repl_to_self.items()}
             self._shared_component_with = replacement, \
-                intf_map_self_to_repl, intf_map_repl_to_self
+                    intf_map_self_to_repl, intf_map_repl_to_self
             return
 
         for proc in target_platform.beforeToRtl:
@@ -172,10 +172,7 @@ class Unit(PropDeclrCollector, UnitImplHelpers):
 
         # prepare signals for interfaces
         for i in self._interfaces:
-            if i._isExtern:
-                ei = self._ctx.interfaces
-            else:
-                ei = None
+            ei = self._ctx.interfaces if i._isExtern else None
             # we are reversing direction because we are looking
             # at the interface from inside of component
             i._signalsForInterface(
@@ -191,7 +188,7 @@ class Unit(PropDeclrCollector, UnitImplHelpers):
             # now every sub unit has a HdlModuleDec prepared
             for u in self._units:
                 subUnitName = u._name
-                u._signalsForSubUnitEntity(self._ctx, "sig_" + subUnitName)
+                u._signalsForSubUnitEntity(self._ctx, f"sig_{subUnitName}")
 
             for proc in target_platform.beforeToRtlImpl:
                 proc(self)
@@ -262,8 +259,8 @@ class Unit(PropDeclrCollector, UnitImplHelpers):
         unit_cnt = len(self._units)
         if cInst_cnt != unit_cnt:
             # resolve the error message
-            inRtl = set(x.name for x in cInstances)
-            inIntf = set(x._name for x in self._units)
+            inRtl = {x.name for x in cInstances}
+            inIntf = {x._name for x in self._units}
             cls_name = self.__class__.__name__
             if cInst_cnt > unit_cnt:
                 diff = inRtl - inIntf

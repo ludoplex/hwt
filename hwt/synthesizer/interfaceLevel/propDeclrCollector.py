@@ -294,7 +294,7 @@ class PropDeclrCollector(object):
 
     @internal
     def _declrCollector(self, name: str, prop: object):
-        if name in ("_associatedClk", "_associatedRst"):
+        if name in {"_associatedClk", "_associatedRst"}:
             object.__setattr__(self, name, prop)
             return prop
 
@@ -343,7 +343,7 @@ class PropDeclrCollector(object):
         with WithNameScope(sm, sm.name_scope.parent):
             self._lazy_loaded.extend(u._to_rtl(
                 self._target_platform, self._store_manager))
-        u._signalsForSubUnitEntity(self._ctx, "sig_" + uName)
+        u._signalsForSubUnitEntity(self._ctx, f"sig_{uName}")
 
     @internal
     def _registerIntfInImpl(self, iName, i):

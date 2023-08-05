@@ -11,9 +11,7 @@ class InterfaceDirectionFns():
                            INTF_DIRECTION.SLAVE,
                            INTF_DIRECTION.TRISTATE], intfDir
         d = DIRECTION.asIntfDirection(self._masterDir)
-        if intfDir == INTF_DIRECTION.MASTER or d == INTF_DIRECTION.TRISTATE:
-            pass
-        else:
+        if intfDir != INTF_DIRECTION.MASTER and d != INTF_DIRECTION.TRISTATE:
             d = INTF_DIRECTION.opposite(d)
 
         self._direction = d
